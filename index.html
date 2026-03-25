@@ -18,13 +18,30 @@ html,body{width:100%;height:100%;overflow:hidden;background:#0d0d0d;font-family:
 .set-section-label{font-size:.55rem;letter-spacing:3px;color:#aaa;text-transform:uppercase;margin-bottom:10px;border-bottom:1px solid #1a1a1a;padding-bottom:4px;}
 .set-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;}
 .set-row-label{font-size:.8rem;color:#ddd;}
-/* Toggle */
-.toggle{position:relative;width:44px;height:24px;flex-shrink:0;}
+/* Toggle — bigger and clearly visible */
+.toggle{position:relative;width:60px;height:32px;flex-shrink:0;}
 .toggle input{opacity:0;width:0;height:0;position:absolute;}
-.toggle-track{position:absolute;inset:0;background:#222;border-radius:12px;transition:background .2s;cursor:pointer;}
-.toggle input:checked+.toggle-track{background:var(--accent);}
-.toggle-track::after{content:'';position:absolute;width:18px;height:18px;background:#fff;border-radius:50%;top:3px;left:3px;transition:transform .2s;}
-.toggle input:checked+.toggle-track::after{transform:translateX(20px);}
+.toggle-track{
+  position:absolute;inset:0;
+  background:#444;
+  border-radius:16px;
+  transition:background .25s;
+  cursor:pointer;
+  border:2px solid #666;
+  box-shadow:inset 0 1px 4px rgba(0,0,0,0.5);
+}
+.toggle input:checked+.toggle-track{background:var(--accent);border-color:var(--accent);}
+.toggle-track::after{
+  content:'';
+  position:absolute;
+  width:24px;height:24px;
+  background:#fff;
+  border-radius:50%;
+  top:2px;left:2px;
+  transition:transform .25s;
+  box-shadow:0 2px 5px rgba(0,0,0,0.4);
+}
+.toggle input:checked+.toggle-track::after{transform:translateX(28px);}
 /* Colour swatches */
 .swatch-row{display:flex;gap:8px;flex-wrap:wrap;}
 .swatch{width:34px;height:34px;border-radius:6px;border:2px solid transparent;cursor:pointer;transition:border-color .15s;}
@@ -73,8 +90,8 @@ html,body{width:100%;height:100%;overflow:hidden;background:#0d0d0d;font-family:
 #power-row{display:flex;justify-content:space-between;align-items:baseline;}
 #power-pct{font-size:.72rem;color:var(--accent);}
 #power-track{width:100%;height:20px;background:#1a1a1a;border:1px solid #333;border-radius:10px;overflow:hidden;cursor:pointer;}
-#power-fill{height:100%;width:72%;background:linear-gradient(90deg,#00ff88,#ff9900,#ff2a2a);pointer-events:none;transition:width 0.05s linear;}
-#pslider{width:100%;margin-top:3px;accent-color:var(--accent);}
+#power-fill{height:100%;width:50%;background:linear-gradient(90deg,#00ff88,#ff9900,#ff2a2a);pointer-events:none;transition:width 0.05s linear;}
+#pslider{width:100%;margin-top:3px;accent-color:var(--accent);writing-mode:horizontal-tb;direction:ltr;}
 #fire-btn{background:var(--accent);border:none;border-radius:6px;color:#000;font-family:'Black Ops One',cursive;font-size:.95rem;letter-spacing:2px;padding:0 16px;height:52px;cursor:pointer;flex-shrink:0;white-space:nowrap;}
 #fire-btn:active{background:#cc5500;}
 
@@ -118,6 +135,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:#0d0d0d;font-family:
 /* ── PORTRAIT on mobile ── */
 @media(max-width:600px) and (orientation:portrait){
   #app{flex-direction:column;}
+  #pslider{writing-mode:horizontal-tb;direction:ltr;width:100%;height:auto;display:block;}
 }
 
 /* ── LANDSCAPE on mobile ── */
@@ -247,6 +265,13 @@ html,body{width:100%;height:100%;overflow:hidden;background:#0d0d0d;font-family:
     <button id="home-start" onclick="launchGame()">LIGHT FUSE</button>
     <button onclick="openSettings()" style="font-family:'Black Ops One',cursive;font-size:.9rem;letter-spacing:2px;padding:14px 22px;background:transparent;border:2px solid #333;border-radius:8px;color:#666;cursor:pointer;">⚙ SETTINGS</button>
   </div>
+  <div style="display:flex;align-items:center;gap:14px;margin-top:18px;background:rgba(255,255,255,0.06);border:1px solid #333;border-radius:10px;padding:12px 18px;">
+    <label class="toggle">
+      <input type="checkbox" id="home-mobile" onchange="toggleMobile(this.checked)">
+      <div class="toggle-track"></div>
+    </label>
+    <span id="mobile-label" style="font-family:'Black Ops One',cursive;font-size:.8rem;color:var(--accent);letter-spacing:2px;cursor:pointer;" onclick="document.getElementById('home-mobile').click()">📱 MOBILE MODE</span>
+  </div>
 </div>
 
 <!-- SETTINGS -->
@@ -270,6 +295,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:#0d0d0d;font-family:
     <div class="set-row">
       <span class="set-row-label">Early Bombs</span>
       <label class="toggle"><input type="checkbox" id="set-earlybombs" onchange="saveSetting('earlybombs',this.checked)"><div class="toggle-track"></div></label>
+
     </div>
   </div>
 
@@ -398,6 +424,7 @@ let settings = {
   ballpath: true,
   suddendeath: false,
   earlybombs: false,
+  mobile: true,
   felt: 'green',
   cue: 'classic',
   flowers: false,
@@ -407,10 +434,33 @@ try {
   const saved = JSON.parse(localStorage.getItem('bb_settings')||'{}');
   Object.assign(settings, saved);
 } catch(e){}
+// Apply mobile mode immediately so BALL_R is correct from the start
+// (applyMobileMode defined below, called after DOM ready via setTimeout)
 
 function saveSetting(key, val) {
   settings[key] = val;
   try { localStorage.setItem('bb_settings', JSON.stringify(settings)); } catch(e){}
+}
+
+function applyMobileMode() {
+  BALL_R = settings.mobile ? 12 : 23; // mobile balls 50% bigger than before (was 8)
+  const lbl = document.getElementById('mobile-label');
+  const cb  = document.getElementById('home-mobile');
+  // Label: left = current mode name; toggle right = switch to other
+  if(lbl){
+    lbl.textContent = settings.mobile ? '📱 MOBILE MODE' : '🖥 COMPUTER MODE';
+    lbl.style.color = settings.mobile ? 'var(--accent)' : '#aaaaff';
+  }
+  if(cb)  cb.checked = !settings.mobile; // unchecked = mobile (default), checked = desktop
+  // Power: mobile default 50% (midpoint of 44-100 = 72, but visually 50% means the slider sits mid)
+  // Keep power at 72 regardless — just update the fill display to match
+  setPower(G.power);
+}
+
+function toggleMobile(checked) {
+  // checked = desktop mode; unchecked = mobile mode
+  saveSetting('mobile', !checked);
+  applyMobileMode();
 }
 function onDesignToggle(key, val) {
   // Skulls and flowers are mutually exclusive
@@ -427,6 +477,7 @@ function openSettings() {
   document.getElementById('set-ballpath').checked    = settings.ballpath;
   document.getElementById('set-suddendeath').checked = settings.suddendeath;
   document.getElementById('set-earlybombs').checked  = settings.earlybombs;
+  // mobile mode toggle is on home screen, not settings
   document.getElementById('set-flowers').checked = settings.flowers;
   document.getElementById('set-skulls').checked  = settings.skulls;
   document.querySelectorAll('[data-felt]').forEach(el =>
@@ -465,6 +516,16 @@ function selectDiff(d) {
 function launchGame() {
   document.getElementById('home').classList.add('hidden');
   document.getElementById('s-diff').textContent = DIFF_LABELS[difficulty];
+  // Apply difficulty defaults for ballpath and suddendeath
+  // (only if not overridden by user via settings)
+  if (difficulty === 'easy') {
+    settings.ballpath    = true;
+    settings.suddendeath = false;
+  } else {
+    // normal and hard
+    settings.ballpath    = false;
+    settings.suddendeath = true;
+  }
   G.score = 0; G.level = 1;
   startLevel();
 }
@@ -536,7 +597,7 @@ function buildTable() {
   const ox = 0, oy = 0;
   const ix = ox+RAIL, iy = oy+RAIL, iw = tw-RAIL*2, ih = th-RAIL*2;
   // Pocket radius: base 10% of short side, scaled up 40%
-  const PR = 58; // = BALL_R(23) * 2.5
+  const PR = settings.mobile ? Math.round(58 / 3) : 58; // mobile = 1/3 desktop size
   T = { ox,oy,ow:tw,oh:th, ix,iy,iw,ih, rail:RAIL,wood:WOOD,pr:PR,
         left:ix, right:ix+iw, top:iy, bottom:iy+ih, isPortrait };
   const PRC = PR; // corner pockets same size as side
@@ -585,7 +646,7 @@ window.addEventListener('resize', resizeCanvas);
 
 // ── Game state ─────────────────────────────────────────────────────────────
 const BCOLORS = ['#f5c518','#2255cc','#ee2222','#7b2fbe','#ff8800','#228b22','#8b2500','#111111','#ddbb00','#1177cc','#cc2244','#116611','#aa4400','#333333'];
-const BALL_R   = 23;
+let BALL_R = 23; // updated by mobile mode
 const FRICTION = 0.986;
 const MIN_SPD  = 0.08;
 
@@ -897,8 +958,10 @@ psliderEl.addEventListener('input', function(){ setPower(+this.value); });
 
 function setPower(v) {
   G.power=v;
-  document.getElementById('power-fill').style.width=v+'%';
-  document.getElementById('power-pct').textContent=v+'%';
+  // Fill bar: map slider range 44-100 to 0-100% visually
+  const fillPct = Math.round((v - 44) / 56 * 100);
+  document.getElementById('power-fill').style.width=fillPct+'%';
+  document.getElementById('power-pct').textContent=fillPct+'%';
   psliderEl.value=v;
 }
 
@@ -908,7 +971,7 @@ document.getElementById('fire-btn').addEventListener('touchstart', e=>e.stopProp
 // ── Shoot ──────────────────────────────────────────────────────────────────
 function shoot() {
   if(G.phase!=='aiming'||!G.cue) return;
-  const spd=G.power*0.22;
+  const spd=G.power*(settings.mobile?0.10:0.22);
   G.cue.vx=Math.cos(G.aimAngle)*spd + G.spinX*1.4;
   G.cue.vy=Math.sin(G.aimAngle)*spd + G.spinY*1.4;
   G.phase='rolling'; G.combo=0;
@@ -952,8 +1015,8 @@ function moveBall(ball,isCue) {
     if(dist < pR){
       if(isCue){
         if(settings.suddendeath){
-          // Scratch = instant loss in sudden death mode
-          showRankings(false);
+          // Scratch = instant loss — trigger UNLUCKY BALLS at pocket position
+          triggerLoss(p.x, p.y);
           return;
         }
         ball.x=T.isPortrait?T.ix+Math.round(T.iw/2):T.ix+Math.round(T.iw*0.25);
@@ -988,37 +1051,12 @@ function physics() {
   const active=G.balls.filter(b=>!b.potted&&!b.exploded);
   for(const b of active) moveBall(b,false);
   for(const b of active) {
-    // If cue hits a danger bomb, game over
+    // Check danger bomb BEFORE resolving collision so we catch the touch
     if(b.isDanger && !b.potted && !b.exploded){
       const d = Math.hypot(G.cue.x-b.x, G.cue.y-b.y);
-      if(d < G.cue.r + b.r){
+      if(d < G.cue.r + b.r + 2){ // +2px tolerance
         b.exploded = true;
-        G.shake = 1.2;
-        G.phase = 'exploding'; // freeze controls
-        // Big explosion particles
-        for(let i=0;i<80;i++){
-          const a=Math.random()*Math.PI*2;
-          const s=2+Math.random()*12;
-          const colors=['#ff4400','#ff9900','#ffdd00','#ff2200','#ffffff','#ff6600'];
-          G.particles.push({
-            x:b.x, y:b.y,
-            vx:Math.cos(a)*s, vy:Math.sin(a)*s,
-            life:1, r:3+Math.random()*8,
-            color:colors[Math.floor(Math.random()*colors.length)]
-          });
-        }
-        // Secondary ring of sparks
-        for(let i=0;i<40;i++){
-          const a=(i/40)*Math.PI*2;
-          G.particles.push({
-            x:b.x+Math.cos(a)*b.r, y:b.y+Math.sin(a)*b.r,
-            vx:Math.cos(a)*6, vy:Math.sin(a)*6,
-            life:1, r:2+Math.random()*4,
-            color: i%2===0 ? '#ffdd00' : '#ff4400'
-          });
-        }
-        G.explosion = { x:b.x, y:b.y, t:0, maxT:2.0 };
-        setTimeout(()=>showRankings(false), 2200);
+        triggerLoss(b.x, b.y); // triggerLoss sets phase, particles, G.explosion
         return;
       }
     }
@@ -1052,26 +1090,15 @@ function tickTimers(dt) {
 }
 
 function explodeBall(b) {
-  b.exploded=true; G.shake=1.2;
-  G.phase = 'exploding';
-  // Big explosion
-  for(let i=0;i<80;i++){
-    const a=Math.random()*Math.PI*2, s=2+Math.random()*12;
-    const colors=['#ff4400','#ff9900','#ffdd00','#ff2200','#ffffff','#ff6600'];
-    G.particles.push({x:b.x,y:b.y,vx:Math.cos(a)*s,vy:Math.sin(a)*s,life:1,r:3+Math.random()*8,color:colors[Math.floor(Math.random()*colors.length)]});
-  }
-  for(let i=0;i<40;i++){
-    const a=(i/40)*Math.PI*2;
-    G.particles.push({x:b.x+Math.cos(a)*b.r,y:b.y+Math.sin(a)*b.r,vx:Math.cos(a)*6,vy:Math.sin(a)*6,life:1,r:2+Math.random()*4,color:i%2===0?'#ffdd00':'#ff4400'});
-  }
-  G.explosion = { x:b.x, y:b.y, t:0, maxT:2.0 };
-  setTimeout(()=>showRankings(false), 2200);
+  b.exploded=true;
+  triggerLoss(b.x, b.y);
 }
 
 function checkEnd() {
-  if(G.balls.some(b=>b.exploded)){
-    showRankings(false); return;
-  }
+  // Only trigger game-over from explosion if it just happened (G.explosion active)
+  // Balls that previously exploded as danger bombs stay exploded but shouldn't
+  // block a level clear when all remaining balls are potted.
+  if(G.explosion && G.explosion.t < G.explosion.maxT) return; // let explosion play out
   if(!G.balls.some(b=>!b.potted&&!b.exploded)){
     G.score+=G.level*500;
     if(G.level>=MAX_LEVEL){
@@ -1105,6 +1132,36 @@ function saveScore(entry) {
   scores.sort((a,b)=>b.score-a.score);
   try { localStorage.setItem('bb_scores', JSON.stringify(scores.slice(0,10))); } catch(e){}
   return scores;
+}
+
+// Trigger the UNLUCKY BALLS explosion + animation before showing rankings
+function triggerLoss(x, y) {
+  if (G.phase === 'exploding') return;
+  G.phase = 'exploding';
+  G.shake = 1.4;
+  const spd = settings.mobile ? 7 : 14;
+  const cnt = settings.mobile ? 80 : 150;
+  // Burst particles — debris + embers
+  for(let i=0;i<cnt;i++){
+    const a=Math.random()*Math.PI*2, s=1+Math.random()*spd;
+    const debris = Math.random()<0.3;
+    G.particles.push({
+      x, y, vx:Math.cos(a)*s, vy:Math.sin(a)*s*(0.4+Math.random()*0.6),
+      life:0.6+Math.random()*0.4,
+      r: debris ? 3+Math.random()*7 : 1.5+Math.random()*4,
+      color: debris
+        ? (Math.random()<0.5?'#331100':'#221100')
+        : (['#ff6600','#ff9900','#ffcc00','#ff3300','#ffff80','#ffffff'][Math.floor(Math.random()*6)])
+    });
+  }
+  // Outward ember ring
+  const ring = settings.mobile ? 30 : 60;
+  for(let i=0;i<ring;i++){
+    const a=(i/ring)*Math.PI*2, s=spd*0.6+Math.random()*spd*0.4;
+    G.particles.push({x,y,vx:Math.cos(a)*s,vy:Math.sin(a)*s,life:0.8,r:2+Math.random()*3,color:i%2===0?'#ffcc00':'#ff4400'});
+  }
+  G.explosion = { x, y, t:0, maxT:2.2 };
+  setTimeout(()=>showRankings(false), 2400);
 }
 
 function showRankings(champion) {
@@ -1633,44 +1690,105 @@ function drawDangerBomb(b, now) {
   ctx.restore();
 }
 
+// Draw a single 3-D ball with rolling stripe, shadow and specular highlight
+function draw3DBall(x, y, r, color, label, rollAngle, rollDir, urgent, urgentColor, now, ph) {
+  // Drop shadow (ellipse below ball)
+  ctx.save();
+  ctx.globalAlpha = 0.35;
+  const sg = ctx.createRadialGradient(x+r*0.25, y+r*0.92, 0, x+r*0.25, y+r*0.92, r*0.85);
+  sg.addColorStop(0,'rgba(0,0,0,0.7)');
+  sg.addColorStop(1,'rgba(0,0,0,0)');
+  ctx.beginPath(); ctx.ellipse(x+r*0.12, y+r*0.9, r*0.85, r*0.28, 0, 0, Math.PI*2);
+  ctx.fillStyle=sg; ctx.fill();
+  ctx.restore();
+
+  // Urgent glow
+  if(urgent > 0.3){
+    ctx.save();
+    ctx.shadowBlur=18*urgent; ctx.shadowColor=urgentColor;
+    ctx.globalAlpha=0.25+0.4*Math.sin(now*8+ph)*urgent;
+    ctx.beginPath(); ctx.arc(x,y,r+4,0,Math.PI*2);
+    ctx.fillStyle=urgentColor; ctx.fill();
+    ctx.restore();
+  }
+
+  // Base sphere — radial gradient for 3-D roundness
+  // Light source top-left
+  const lightX = x - r*0.38, lightY = y - r*0.38;
+  const gr = ctx.createRadialGradient(lightX, lightY, r*0.05, x, y, r*1.05);
+  gr.addColorStop(0, lighten(color, 90));
+  gr.addColorStop(0.35, lighten(color, 40));
+  gr.addColorStop(0.75, color);
+  gr.addColorStop(1, lighten(color, -40));
+  ctx.beginPath(); ctx.arc(x,y,r,0,Math.PI*2);
+  ctx.fillStyle=gr; ctx.fill();
+
+  // Rolling stripe — oriented along travel direction, rotates as ball rolls
+  ctx.save();
+  ctx.beginPath(); ctx.arc(x,y,r,0,Math.PI*2); ctx.clip();
+  ctx.translate(x,y);
+  ctx.rotate(rollDir); // align to direction of travel
+  // Horizontal band (perpendicular to travel = looks like it's rolling forward)
+  ctx.save();
+  ctx.rotate(rollAngle); // spin around the travel axis
+  ctx.fillStyle='rgba(255,255,255,0.12)';
+  ctx.fillRect(-r, -r*0.18, r*2, r*0.36);
+  ctx.fillStyle='rgba(0,0,0,0.08)';
+  ctx.fillRect(-r, r*0.18, r*2, r*0.36);
+  ctx.restore();
+  ctx.restore();
+
+  // Dark rim at edge (depth)
+  const rim = ctx.createRadialGradient(x,y,r*0.78,x,y,r);
+  rim.addColorStop(0,'rgba(0,0,0,0)');
+  rim.addColorStop(1,'rgba(0,0,0,0.45)');
+  ctx.beginPath(); ctx.arc(x,y,r,0,Math.PI*2);
+  ctx.fillStyle=rim; ctx.fill();
+
+  // Specular highlight — bright white spot top-left
+  const specX=x-r*0.32, specY=y-r*0.35;
+  const spec = ctx.createRadialGradient(specX,specY,0,specX,specY,r*0.42);
+  spec.addColorStop(0,'rgba(255,255,255,0.85)');
+  spec.addColorStop(0.5,'rgba(255,255,255,0.18)');
+  spec.addColorStop(1,'rgba(255,255,255,0)');
+  ctx.beginPath(); ctx.arc(x,y,r,0,Math.PI*2);
+  ctx.fillStyle=spec; ctx.fill();
+
+  // Number label
+  if(label !== null){
+    ctx.fillStyle='rgba(255,255,255,0.92)';
+    ctx.font='bold '+Math.round(r*0.78)+'px Share Tech Mono';
+    ctx.textAlign='center'; ctx.textBaseline='middle';
+    // Tiny shadow behind number for readability
+    ctx.shadowBlur=3; ctx.shadowColor='rgba(0,0,0,0.8)';
+    ctx.fillText(label, x, y);
+    ctx.shadowBlur=0;
+  }
+}
+
 function drawBalls() {
   const now=Date.now()/1000;
   for(const b of G.balls){
     if(b.potted||b.exploded) continue;
-
-    if(b.isDanger){
-      drawDangerBomb(b, now);
-      continue;
-    }
-
-    const pulse=b.isBomb?Math.max(0,1-b.timer/b.maxTimer):0;
-    // Glow when urgent
-    if(pulse>0.3){
-      ctx.save();ctx.shadowBlur=18*pulse;ctx.shadowColor=b.color;
-      ctx.globalAlpha=0.25+0.4*Math.sin(now*8+b.ph)*pulse;
-      ctx.beginPath();ctx.arc(b.x,b.y,b.r+4,0,Math.PI*2);
-      ctx.fillStyle=b.color;ctx.fill();ctx.restore();
-    }
-    // Ball body
-    const gr=ctx.createRadialGradient(b.x-2,b.y-3,1,b.x,b.y,b.r);
-    gr.addColorStop(0,lighten(b.color,70));gr.addColorStop(1,b.color);
-    ctx.beginPath();ctx.arc(b.x,b.y,b.r,0,Math.PI*2);ctx.fillStyle=gr;ctx.fill();
-    // White edge ring
-    ctx.beginPath();ctx.arc(b.x,b.y,b.r,0,Math.PI*2);
-    ctx.strokeStyle='rgba(255,255,255,0.5)';ctx.lineWidth=1.5;ctx.stroke();
-    // Ball number label
-    ctx.fillStyle='rgba(255,255,255,0.85)';
-    ctx.font='bold '+Math.round(b.r*0.82)+'px Share Tech Mono';
-    ctx.textAlign='center';ctx.textBaseline='middle';
-    ctx.fillText(b.id+1,b.x,b.y);
+    if(b.isDanger){ drawDangerBomb(b, now); continue; }
+    const pulse=b.isBomb ? Math.max(0,1-b.timer/b.maxTimer) : 0;
+    // Rolling angle derived from velocity magnitude and time
+    const speed = Math.hypot(b.vx, b.vy);
+    if(!b._roll) b._roll=0;
+    if(!b._rollDir) b._rollDir=0;
+    if(speed > 0.05) b._rollDir = Math.atan2(b.vy, b.vx); // direction of travel
+    b._roll += speed * 0.05;
+    draw3DBall(b.x, b.y, b.r, b.color, b.id+1, b._roll, b._rollDir, pulse, b.color, now, b.ph);
   }
-  // Cue ball
+  // Cue ball — white 3-D
   if(G.cue){
-    const{x,y,r}=G.cue;
-    const cg=ctx.createRadialGradient(x-3,y-3,1,x,y,r);
-    cg.addColorStop(0,'#ffffff');cg.addColorStop(1,'#e8e8e8');
-    ctx.beginPath();ctx.arc(x,y,r,0,Math.PI*2);ctx.fillStyle=cg;ctx.fill();
-    ctx.strokeStyle='rgba(255,255,255,0.7)';ctx.lineWidth=1.5;ctx.stroke();
+    const{x,y,r,vx,vy}=G.cue;
+    if(!G.cue._roll) G.cue._roll=0;
+    if(!G.cue._rollDir) G.cue._rollDir=0;
+    const cs=Math.hypot(vx||0,vy||0);
+    if(cs>0.05) G.cue._rollDir=Math.atan2(vy||0,vx||0);
+    G.cue._roll += cs*0.05;
+    draw3DBall(x, y, r, '#d8d8d8', null, G.cue._roll, G.cue._rollDir, 0, '#fff', now, 0);
   }
 }
 
@@ -1731,48 +1849,201 @@ function loop(ts){
   ctx.fillStyle='#0d0d0d';ctx.fillRect(0,0,canvas.width,canvas.height);
   if(G.cue){drawTable();drawTimerBar();drawAimLine();drawBalls();drawParticles();}
 
-  // ── "UNLUCKY BALLS" explosion overlay ─────────────────────────────────────
+  // ── UNLUCKY BALLS fireball overlay ──────────────────────────────────────
   if(G.explosion){
-    const {t, maxT} = G.explosion;
-    const progress = t / maxT;
-    // Flash white at start, then fade to dark overlay
-    if(progress < 0.15){
-      const flashAlpha = (0.15 - progress) / 0.15;
-      ctx.fillStyle = 'rgba(255,255,255,'+flashAlpha*0.9+')';
-      ctx.fillRect(0,0,canvas.width,canvas.height);
-    }
-    // Dark overlay grows in after flash
-    if(progress > 0.1){
-      const darkAlpha = Math.min((progress-0.1)/0.2, 0.75);
-      ctx.fillStyle = 'rgba(0,0,0,'+darkAlpha+')';
-      ctx.fillRect(0,0,canvas.width,canvas.height);
-    }
-    // "UNLUCKY BALLS" text — appears at 0.2s, scales in
-    if(progress > 0.12){
-      const textProgress = Math.min((progress-0.12)/0.15, 1);
-      const scale = 0.5 + textProgress*0.5; // scale from 0.5 to 1
-      const alpha = textProgress;
-      const cx2=canvas.width/2, cy2=canvas.height/2;
+    const {x:ex, y:ey, t, maxT} = G.explosion;
+    const p = t / maxT;
+    const n2 = Date.now()/1000;
+    const W=canvas.width, H=canvas.height;
+    // Fireball centred on screen for visual impact
+    const FCX=W/2, FCY=H/2;
+    const sz=Math.min(W,H);
+
+    // ── Shockwave ring blasts out (0–0.12) ───────────────────────────────────
+    if(p < 0.14){
+      const sp=p/0.14, sr=sz*0.8*sp, sa=(1-sp)*0.85;
       ctx.save();
-      ctx.translate(cx2, cy2);
-      ctx.scale(scale, scale);
-      ctx.globalAlpha = alpha;
-      // Glow behind text
-      ctx.shadowBlur = 40; ctx.shadowColor='#ff4400';
-      ctx.font='bold '+Math.round(Math.min(canvas.width*0.12, canvas.height*0.18))+'px Black Ops One, cursive';
+      const swg=ctx.createRadialGradient(FCX,FCY,sr*0.6,FCX,FCY,sr);
+      swg.addColorStop(0,'rgba(255,230,80,0)');
+      swg.addColorStop(0.65,'rgba(255,160,20,'+sa+')');
+      swg.addColorStop(1,'rgba(255,60,0,0)');
+      ctx.beginPath();ctx.arc(FCX,FCY,sr,0,Math.PI*2);
+      ctx.fillStyle=swg;ctx.fill();
+      ctx.strokeStyle='rgba(255,220,60,'+(sa)+')';
+      ctx.lineWidth=Math.max(4,sz*0.018);ctx.stroke();
+      ctx.restore();
+    }
+
+    // ── Expanding fireball (0–0.55) ──────────────────────────────────────────
+    if(p < 0.60){
+      const grow = p<0.18 ? p/0.18 : 1;
+      const shrink = p>0.3 ? 1-(p-0.3)/0.30 : 1;
+      const fp = Math.min(grow, Math.max(shrink, 0));
+      const fr = sz*(0.18 + 0.45*Math.min(p/0.18,1))*fp;
+      if(fr > 1){
+        ctx.save();
+        // Outermost: dark red corona
+        const fb0=ctx.createRadialGradient(FCX,FCY,fr*0.55,FCX,FCY,fr*1.15);
+        fb0.addColorStop(0,'rgba(160,20,0,'+(fp*0.7)+')');
+        fb0.addColorStop(1,'rgba(60,5,0,0)');
+        ctx.beginPath();ctx.arc(FCX,FCY,fr*1.15,0,Math.PI*2);
+        ctx.fillStyle=fb0;ctx.fill();
+        // Mid: orange-red
+        const fb1=ctx.createRadialGradient(FCX,FCY,0,FCX,FCY,fr);
+        fb1.addColorStop(0,'rgba(255,255,160,'+(fp*0.95)+')');
+        fb1.addColorStop(0.18,'rgba(255,220,40,'+(fp*0.95)+')');
+        fb1.addColorStop(0.45,'rgba(255,100,5,'+(fp*0.88)+')');
+        fb1.addColorStop(0.75,'rgba(200,30,0,'+(fp*0.75)+')');
+        fb1.addColorStop(1,'rgba(80,8,0,0)');
+        ctx.beginPath();ctx.arc(FCX,FCY,fr,0,Math.PI*2);
+        ctx.fillStyle=fb1;ctx.fill();
+        // Bright white-yellow core
+        const fc=ctx.createRadialGradient(FCX,FCY,0,FCX,FCY,fr*0.28);
+        fc.addColorStop(0,'rgba(255,255,255,'+(fp)+')');
+        fc.addColorStop(1,'rgba(255,250,120,0)');
+        ctx.beginPath();ctx.arc(FCX,FCY,fr*0.28,0,Math.PI*2);
+        ctx.fillStyle=fc;ctx.fill();
+        ctx.restore();
+      }
+    }
+
+    // ── LARGE flame crown around text — fills the screen (0.05–0.85) ──────────
+    if(p > 0.05 && p < 0.88){
+      const fIn = Math.min((p-0.05)/0.12, 1);
+      const fOut = p > 0.65 ? 1-(p-0.65)/0.23 : 1;
+      const fAlpha = fIn * fOut;
+      const flameH = H * 0.72 * fIn * Math.min(1,(1-(p-0.05)*0.4));
+      const flameW = W * 0.55;
+      ctx.save();
+      // Draw 9 large flame tongues spanning full width of screen
+      for(let ti=0;ti<9;ti++){
+        const xOff = (ti/(8)) * W - W/2; // spread across full width
+        const hMod = 0.55 + 0.45*Math.sin(n2*7 + ti*1.1);
+        const wMod = 0.6  + 0.4*Math.cos(n2*5 + ti*0.9);
+        const fh = flameH * hMod;
+        const fw = (flameW/9) * wMod * 1.6;
+        ctx.save();
+        ctx.translate(FCX + xOff, H); // base at bottom of screen
+        // Outer flame (deep red-orange, wide)
+        const fg1 = ctx.createRadialGradient(0, -fh*0.25, fw*0.1, 0, -fh*0.5, fh);
+        fg1.addColorStop(0, `rgba(255,80,0,${fAlpha*0.9})`);
+        fg1.addColorStop(0.4,`rgba(220,30,0,${fAlpha*0.75})`);
+        fg1.addColorStop(1, `rgba(100,5,0,0)`);
+        ctx.beginPath();
+        ctx.moveTo(-fw*0.5, 0);
+        ctx.bezierCurveTo(-fw*1.2, -fh*0.3, -fw*0.9, -fh*0.7, xOff*0.02, -fh);
+        ctx.bezierCurveTo( fw*0.9, -fh*0.7,  fw*1.2, -fh*0.3,  fw*0.5, 0);
+        ctx.closePath();
+        ctx.fillStyle = fg1; ctx.fill();
+        // Mid flame (orange-yellow)
+        const fg2 = ctx.createRadialGradient(0, -fh*0.3, 2, 0, -fh*0.4, fh*0.75);
+        fg2.addColorStop(0, `rgba(255,200,10,${fAlpha*0.85})`);
+        fg2.addColorStop(0.5,`rgba(255,100,0,${fAlpha*0.6})`);
+        fg2.addColorStop(1, `rgba(200,20,0,0)`);
+        ctx.beginPath();
+        ctx.moveTo(-fw*0.3, 0);
+        ctx.bezierCurveTo(-fw*0.8, -fh*0.35, -fw*0.6, -fh*0.72, 0, -fh*0.92);
+        ctx.bezierCurveTo( fw*0.6, -fh*0.72,  fw*0.8, -fh*0.35, fw*0.3, 0);
+        ctx.closePath();
+        ctx.fillStyle = fg2; ctx.fill();
+        // Bright yellow-white core
+        const fg3 = ctx.createRadialGradient(0, -fh*0.25, 0, 0, -fh*0.28, fw*0.4);
+        fg3.addColorStop(0, `rgba(255,255,180,${fAlpha*0.95})`);
+        fg3.addColorStop(1, `rgba(255,180,0,0)`);
+        ctx.beginPath();
+        ctx.ellipse(0, -fh*0.28, fw*0.28, fh*0.32, 0, 0, Math.PI*2);
+        ctx.fillStyle = fg3; ctx.fill();
+        ctx.restore();
+      }
+      ctx.restore();
+    }
+
+    // ── Rolling smoke balls (0.2–1.0) ────────────────────────────────────────
+    if(p > 0.20){
+      const sphase=Math.min((p-0.20)/0.25,1);
+      ctx.save();
+      for(let si=0;si<8;si++){
+        const ang=(si/8)*Math.PI*2+p*1.2+si*0.5;
+        const dist=sz*(0.12+si*0.04)*sphase;
+        const rise=sz*0.22*sphase*(0.5+si*0.08);
+        const scx=FCX+Math.cos(ang)*dist;
+        const scy=FCY-rise+Math.sin(ang)*dist*0.3;
+        const sr=sz*(0.05+si*0.018)*sphase;
+        const sa=Math.min(sphase*0.5,0.42)*(1-p*0.7);
+        if(sa<=0||sr<=0) continue;
+        const smg=ctx.createRadialGradient(scx-sr*0.2,scy-sr*0.2,0,scx,scy,sr);
+        smg.addColorStop(0,'rgba(55,40,25,'+sa+')');
+        smg.addColorStop(0.6,'rgba(30,20,10,'+(sa*0.7)+')');
+        smg.addColorStop(1,'rgba(8,5,2,0)');
+        ctx.beginPath();ctx.arc(scx,scy,sr,0,Math.PI*2);
+        ctx.fillStyle=smg;ctx.fill();
+      }
+      ctx.restore();
+    }
+
+    // ── Dark overlay — appears fast so text is always readable ─────────────────
+    if(p > 0.08){
+      const da=Math.min((p-0.08)/0.12,0.85);
+      ctx.fillStyle='rgba(4,1,1,'+da+')';
+      ctx.fillRect(0,0,W,H);
+    }
+
+    // ── "UNLUCKY BALLS" — appears immediately, lingers full duration ───────────
+    // Text fades in quickly (first 8%), stays full opacity, fades out in last 5%
+    if(p > 0.0){
+      const fadeIn = Math.min(p/0.08, 1);
+      const fadeOut = p > 0.95 ? 1-(p-0.95)/0.05 : 1;
+      const tp = fadeIn * fadeOut;
+      const flicker=0.97+0.03*Math.sin(n2*18);
+      ctx.save();
+      ctx.translate(W/2, H/2);
+      ctx.scale(flicker,flicker);
+      ctx.globalAlpha=Math.max(0,tp);
       ctx.textAlign='center'; ctx.textBaseline='middle';
-      // Outline
-      ctx.strokeStyle='#000'; ctx.lineWidth=8; ctx.lineJoin='round';
-      ctx.strokeText('UNLUCKY', 0, -Math.round(canvas.height*0.06));
-      ctx.strokeText('BALLS', 0, Math.round(canvas.height*0.06));
-      // Fill — orange to red gradient
-      const tg=ctx.createLinearGradient(0,-canvas.height*0.12,0,canvas.height*0.12);
-      tg.addColorStop(0,'#ffdd00');
-      tg.addColorStop(0.5,'#ff6600');
-      tg.addColorStop(1,'#ff2200');
-      ctx.fillStyle=tg;
-      ctx.fillText('UNLUCKY', 0, -Math.round(canvas.height*0.06));
-      ctx.fillText('BALLS', 0, Math.round(canvas.height*0.06));
+
+      // Auto-size
+      let fs=Math.round(Math.min(W*0.2,H*0.22));
+      ctx.font='bold '+fs+'px Black Ops One,cursive';
+      const mxw=W*0.86;
+      while(fs>10&&(ctx.measureText('UNLUCKY').width>mxw||ctx.measureText('BALLS').width>mxw)){
+        fs-=2;ctx.font='bold '+fs+'px Black Ops One,cursive';
+      }
+      const lh=Math.round(fs*1.22);
+
+      // Pass 1: fat black outline (max contrast backdrop)
+      ctx.lineJoin='round'; ctx.strokeStyle='#000';
+      ctx.lineWidth=Math.max(12,fs*0.32);
+      ctx.shadowBlur=fs*1.2; ctx.shadowColor='rgba(0,0,0,1)';
+      ctx.strokeText('UNLUCKY',0,-lh/2);
+      ctx.strokeText('BALLS',  0, lh/2);
+
+      // Pass 2: outer orange glow stroke
+      ctx.shadowBlur=fs*0.7; ctx.shadowColor='#ff5500';
+      ctx.strokeStyle='#ff4400';
+      ctx.lineWidth=Math.max(6,fs*0.15);
+      ctx.strokeText('UNLUCKY',0,-lh/2);
+      ctx.strokeText('BALLS',  0, lh/2);
+
+      // Pass 3: fire gradient fill — red at bottom, yellow-white at top
+      const tgy=ctx.createLinearGradient(0,-lh,0,lh);
+      tgy.addColorStop(0,'#ffffa0');   // hot yellow-white top
+      tgy.addColorStop(0.35,'#ffcc00'); // yellow
+      tgy.addColorStop(0.65,'#ff6600'); // orange
+      tgy.addColorStop(1,'#cc1100');    // deep red bottom
+      ctx.shadowBlur=fs*0.5; ctx.shadowColor='#ff8800';
+      ctx.fillStyle=tgy;
+      ctx.fillText('UNLUCKY',0,-lh/2);
+      ctx.fillText('BALLS',  0, lh/2);
+
+      // Pass 4: bright white centre sheen (top portion only)
+      ctx.save();
+      ctx.globalAlpha*=0.45;
+      ctx.shadowBlur=0;
+      ctx.fillStyle='#ffffff';
+      ctx.fillText('UNLUCKY',0,-lh/2);
+      ctx.fillText('BALLS',  0, lh/2);
+      ctx.restore();
+
       ctx.restore();
     }
   }
@@ -1783,6 +2054,9 @@ function loop(ts){
   drawSpinPad();
   requestAnimationFrame(loop);
 }
+
+// Apply mobile mode on load (function defined above settings load)
+applyMobileMode();
 
 // Use requestAnimationFrame to let the browser finish layout before measuring
 requestAnimationFrame(() => {
