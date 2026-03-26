@@ -613,33 +613,35 @@ function buildTable() {
   const ox = 0, oy = 0;
   const ix = ox+RAIL, iy = oy+RAIL, iw = tw-RAIL*2, ih = th-RAIL*2;
   // Pocket radius: base 10% of short side, scaled up 40%
-  // Standard billiards: hole diameter = 2× ball diameter = 4× ball radius
-  // Corner pocket radius = 2.0× BALL_R, side = 1.75× BALL_R
-  const PR_CORNER = Math.round(BALL_R * 2.0);
-  const PR_SIDE   = Math.round(BALL_R * 1.75);
-  const PR = PR_CORNER; // default fallback
+  // Desktop: slightly generous (2.2/2.0). Mobile: standard billiards ratio (2.0/1.78)
+  const PR_CORNER = Math.round(BALL_R * (settings.mobile ? 1.75 : 2.2));
+  const PR_SIDE   = Math.round(BALL_R * (settings.mobile ? 1.5 : 2.0));
+  const PR = PR_CORNER;
   T = { ox,oy,ow:tw,oh:th, ix,iy,iw,ih, rail:RAIL,wood:WOOD,pr:PR_CORNER,
         left:ix, right:ix+iw, top:iy, bottom:iy+ih, isPortrait };
   // All pockets: corner pockets at exact felt corner, side pockets centred on rail
   // Rail centre = halfway between outer edge and felt edge = RAIL/2 from felt
   const railMid = Math.round(RAIL / 2); // pocket centre sits mid-rail
+  // Inset pockets into the felt so holes sit on the playing surface
+  const CI = Math.round(PR_CORNER * 0.7); // corner inset — hole mostly on felt
+  const SI = Math.round(PR_SIDE   * 0.4); // side inset — pulled onto cloth
   if (isPortrait) {
     T.pockets = [
-      {x:T.ix,          y:T.iy,            r:PR_CORNER}, // top-left corner
-      {x:T.ix+T.iw,     y:T.iy,            r:PR_CORNER}, // top-right corner
-      {x:T.ix-railMid,  y:T.iy+T.ih/2,     r:PR_SIDE},   // mid-left side
-      {x:T.ix+T.iw+railMid, y:T.iy+T.ih/2, r:PR_SIDE},   // mid-right side
-      {x:T.ix,          y:T.iy+T.ih,       r:PR_CORNER}, // bottom-left corner
-      {x:T.ix+T.iw,     y:T.iy+T.ih,       r:PR_CORNER}, // bottom-right corner
+      {x:T.ix+CI,           y:T.iy+CI,           r:PR_CORNER}, // top-left corner
+      {x:T.ix+T.iw-CI,      y:T.iy+CI,           r:PR_CORNER}, // top-right corner
+      {x:T.ix+SI,           y:T.iy+T.ih/2,       r:PR_SIDE},   // mid-left side
+      {x:T.ix+T.iw-SI,      y:T.iy+T.ih/2,       r:PR_SIDE},   // mid-right side
+      {x:T.ix+CI,           y:T.iy+T.ih-CI,      r:PR_CORNER}, // bottom-left corner
+      {x:T.ix+T.iw-CI,      y:T.iy+T.ih-CI,      r:PR_CORNER}, // bottom-right corner
     ];
   } else {
     T.pockets = [
-      {x:T.ix,          y:T.iy,                r:PR_CORNER}, // top-left corner
-      {x:T.ix+T.iw/2,   y:T.iy-railMid,        r:PR_SIDE},   // top-mid side
-      {x:T.ix+T.iw,     y:T.iy,                r:PR_CORNER}, // top-right corner
-      {x:T.ix,          y:T.iy+T.ih,           r:PR_CORNER}, // bottom-left corner
-      {x:T.ix+T.iw/2,   y:T.iy+T.ih+railMid,   r:PR_SIDE},   // bottom-mid side
-      {x:T.ix+T.iw,     y:T.iy+T.ih,           r:PR_CORNER}, // bottom-right corner
+      {x:T.ix+CI,           y:T.iy+CI,           r:PR_CORNER}, // top-left corner
+      {x:T.ix+T.iw/2,       y:T.iy+SI,           r:PR_SIDE},   // top-mid side
+      {x:T.ix+T.iw-CI,      y:T.iy+CI,           r:PR_CORNER}, // top-right corner
+      {x:T.ix+CI,           y:T.iy+T.ih-CI,      r:PR_CORNER}, // bottom-left corner
+      {x:T.ix+T.iw/2,       y:T.iy+T.ih-SI,      r:PR_SIDE},   // bottom-mid side
+      {x:T.ix+T.iw-CI,      y:T.iy+T.ih-CI,      r:PR_CORNER}, // bottom-right corner
     ];
   }
 }
@@ -1086,9 +1088,9 @@ function moveBall(ball,isCue) {
     const pR = p.r || T.pr; // per-pocket radius
     const dist = Math.hypot(ball.x-p.x,ball.y-p.y);
     // Chamfer zone: 20% outside pocket radius — gently pull ball in
-    if(dist < pR * 1.25 && dist >= pR){
+    if(dist < pR * 1.35 && dist >= pR){
       // Stronger chamfer pull — simulates curved leather lip guiding ball in
-      const pull = 0.12 * ((pR*1.25 - dist)/(pR*0.25));
+      const pull = 0.18 * ((pR*1.35 - dist)/(pR*0.35));
       ball.vx += (p.x - ball.x) / dist * pull;
       ball.vy += (p.y - ball.y) / dist * pull;
     }
