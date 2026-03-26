@@ -981,12 +981,12 @@ document.getElementById('fire-btn').addEventListener('touchstart', e=>e.stopProp
 // ── Shoot ──────────────────────────────────────────────────────────────────
 function shoot() {
   if(G.phase!=='aiming'||!G.cue) return;
-  // Desktop: ±20% of default(72) across slider range
+  // Desktop: ±40% of default(72) across slider range
   // Mobile:  ±40% of default(72) across slider range
   // Both use linear formula: spd = a + power*b
   const spd = settings.mobile
     ? -0.2469 + G.power * 0.1234   // mobile: min=5.18, default=8.64, max=12.10
-    : 7.694  + G.power * 0.1131;   // desktop: min=12.67, default=15.84, max=19.01
+    : -0.4526 + G.power * 0.2263;  // desktop: min=9.50, default=15.84, max=22.18
   G.cue.vx=Math.cos(G.aimAngle)*spd + G.spinX*1.4;
   G.cue.vy=Math.sin(G.aimAngle)*spd + G.spinY*1.4;
   G.phase='rolling'; G.combo=0;
