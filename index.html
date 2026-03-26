@@ -924,10 +924,10 @@ canvas.addEventListener('mousemove', e => {
   G.aimAngle = Math.atan2(my - G.cue.y, mx - G.cue.x);
 });
 
-// Click anywhere on canvas to shoot
+// Click anywhere on canvas to shoot (desktop only — not mobile)
 canvas.addEventListener('click', e => {
+  if (settings.mobile) return; // touch devices use the FIRE button
   if (G.phase !== 'aiming' || !G.cue) return;
-  // Update aim angle to click position first, then fire
   const rect = canvas.getBoundingClientRect();
   const mx = e.clientX - rect.left;
   const my = e.clientY - rect.top;
