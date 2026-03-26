@@ -1024,7 +1024,7 @@ function shoot() {
   // Both use linear formula: spd = a + power*b
   const spd = settings.mobile
     ? -0.2469 + G.power * 0.1234   // mobile: min=5.18, default=8.64, max=12.10
-    : -8.5989 + G.power * 0.3394;  // desktop: min=6.34 (-60%), default=15.84, max=25.34 (+60%)
+    : 25.4388 + G.power*(-0.7220) + G.power*G.power*0.0082; // quadratic: min=9.5, default=15.84, max=35
   G.cue.vx=Math.cos(G.aimAngle)*spd + G.spinX*1.4;
   G.cue.vy=Math.sin(G.aimAngle)*spd + G.spinY*1.4;
   G.phase='rolling'; G.combo=0;
@@ -1115,17 +1115,17 @@ function physics() {
     // Check danger bomb BEFORE resolving collision so we catch the touch
     if(b.isDanger && !b.potted && !b.exploded){
       const d = Math.hypot(G.cue.x-b.x, G.cue.y-b.y);
-      // Use single-sphere radius (b.r/2) for hitbox — matches the visual figure-8
-      // The bomb is drawn as two spheres each of radius b.r/2, so collision
-      // triggers when cue ball actually touches either sphere visually
-      const bombVisualR = b.r * 0.65; // slightly larger than one sphere to catch both
-      if(d < G.cue.r + bombVisualR){
+      // Detonate when cue ball physically touches the bomb (same threshold as resolveBB)
+      // resolveBB uses a.r + b.r to detect contact — we use the same so it fires
+      // at the exact moment of visual contact, not after being pushed away
+      if(d < G.cue.r + b.r){
         b.exploded = true;
         triggerLoss(b.x, b.y);
         return;
       }
+    } else {
+      resolveBB(G.cue,b);
     }
-    resolveBB(G.cue,b);
   }
   for(let i=0;i<active.length;i++) for(let j=i+1;j<active.length;j++) resolveBB(active[i],active[j]);
 
@@ -1755,7 +1755,7 @@ function drawDangerBomb(b, now) {
   ctx.shadowBlur = 0;
 
   // Trigger radius circle — shows exactly where cue ball will set off the bomb
-  const triggerR = b.r * 0.65; // matches bombVisualR in physics collision check
+  const triggerR = b.r; // matches physics collision threshold (cue.r + b.r)
   ctx.save();
   ctx.beginPath(); ctx.arc(b.x, b.y, triggerR, 0, Math.PI*2);
   ctx.strokeStyle = `rgba(255,60,0,${0.35 + 0.25*Math.abs(Math.sin(now*3))})`;
