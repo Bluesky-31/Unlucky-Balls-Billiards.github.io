@@ -558,13 +558,13 @@ function getLevelData(lvl) {
   let n, t;
   if (difficulty === 'easy') {
     n = 3 + capped;
-    t = 60 + capped * 10;
+    t = 70 + capped * 10;
   } else if (difficulty === 'hard') {
     n = 5 + capped;
-    t = 60 + capped * 8;
+    t = 70 + capped * 8;
   } else {
     n = 4 + capped;
-    t = 60 + capped * 9;
+    t = 70 + capped * 9;
   }
   const hasBombs = true;
 
@@ -657,8 +657,8 @@ window.addEventListener('resize', resizeCanvas);
 // ── Game state ─────────────────────────────────────────────────────────────
 const BCOLORS = ['#f5c518','#2255cc','#ee2222','#7b2fbe','#ff8800','#228b22','#8b2500','#111111','#ddbb00','#1177cc','#cc2244','#116611','#aa4400','#333333'];
 let BALL_R = 23; // updated by mobile mode
-const FRICTION = 0.986;
-const MIN_SPD  = 0.08;
+const FRICTION = 0.978;
+const MIN_SPD  = 0.25;
 
 let G = {
   balls:[], cue:null, phase:'idle',
@@ -981,7 +981,12 @@ document.getElementById('fire-btn').addEventListener('touchstart', e=>e.stopProp
 // ── Shoot ──────────────────────────────────────────────────────────────────
 function shoot() {
   if(G.phase!=='aiming'||!G.cue) return;
-  const spd=G.power*(settings.mobile?0.10:0.22);
+  // Desktop: ±20% of default(72) across slider range
+  // Mobile:  ±40% of default(72) across slider range
+  // Both use linear formula: spd = a + power*b
+  const spd = settings.mobile
+    ? -0.2469 + G.power * 0.1234   // mobile: min=5.18, default=8.64, max=12.10
+    : 7.694  + G.power * 0.1131;   // desktop: min=12.67, default=15.84, max=19.01
   G.cue.vx=Math.cos(G.aimAngle)*spd + G.spinX*1.4;
   G.cue.vy=Math.sin(G.aimAngle)*spd + G.spinY*1.4;
   G.phase='rolling'; G.combo=0;
@@ -1083,7 +1088,7 @@ function physics() {
   const cs=Math.hypot(G.cue.vx,G.cue.vy);
   // Allow aiming once everything is slow enough — zero ALL velocities immediately
   // so no residual motion carries into the next shot.
-  const SLOW = MIN_SPD * 6;
+  const SLOW = MIN_SPD * 3; // unlock aiming while balls still have slight motion
   if(cs < SLOW && !active.some(b=>Math.hypot(b.vx,b.vy) > SLOW)) {
     // Hard-zero every ball so nothing can drift later
     G.cue.vx=0; G.cue.vy=0;
@@ -1098,7 +1103,8 @@ function tickTimers(dt) {
   if(G.phase!=='aiming'&&G.phase!=='rolling') return;
   for(const b of G.balls){
     if(b.potted||b.exploded) continue;
-    if(!b.isBomb) continue; // non-bomb balls (levels 1-2) don't tick
+    if(!b.isBomb) continue;
+    if(!settings.timer) continue; // Beginner mode — no time limit
     b.timer-=dt;
     if(b.timer<=0) explodeBall(b);
   }
@@ -1344,27 +1350,91 @@ function drawTable() {
     });
   }
 
-  // ── Pocket holes ─────────────────────────────────────────────────────────
+  // ── Pocket holes with 45° chamfered corners ──────────────────────────────
   const tcx=T.ix+T.iw/2, tcy=T.iy+T.ih/2;
   for(const p of T.pockets){
     const pR = p.r || pr;
+    // chamfer cut = 20% of pR, so the angled edge sits at 0.8*pR from centre
+    const cOff = pR * 0.82; // where chamfer cuts start on each axis
+    const cLen = pR * 0.40; // length of each chamfer facet
 
-    // Dark surround — blends into the cloth edge cleanly
-    ctx.beginPath();ctx.arc(p.x,p.y,pR+5,0,Math.PI*2);
-    ctx.fillStyle='rgba(0,0,0,0.55)';ctx.fill();
+    // Pocket surround
+    ctx.beginPath();ctx.arc(p.x,p.y,pR+6,0,Math.PI*2);
+    ctx.fillStyle='rgba(0,0,0,0.72)';ctx.fill();
 
-    // Pure black hole — no lip, no stroke, clean edge
-    ctx.beginPath();ctx.arc(p.x,p.y,pR,0,Math.PI*2);
+    // Draw the chamfered hole as an octagon (circle with 4 angled corner cuts)
+    // We create a path that is a circle with 45° facets at the 4 cardinal intercepts
+    ctx.beginPath();
+    // Top facet (NW→NE)
+    ctx.moveTo(p.x-cLen/2, p.y-cOff);
+    ctx.lineTo(p.x+cLen/2, p.y-cOff);
+    // NE chamfer cut (45° down-right)
+    ctx.lineTo(p.x+cOff,   p.y-cLen/2);
+    // Right facet
+    ctx.lineTo(p.x+cOff,   p.y+cLen/2);
+    // SE chamfer cut
+    ctx.lineTo(p.x+cLen/2, p.y+cOff);
+    // Bottom facet
+    ctx.lineTo(p.x-cLen/2, p.y+cOff);
+    // SW chamfer cut
+    ctx.lineTo(p.x-cOff,   p.y+cLen/2);
+    // Left facet
+    ctx.lineTo(p.x-cOff,   p.y-cLen/2);
+    // NW chamfer cut back to start
+    ctx.lineTo(p.x-cLen/2, p.y-cOff);
+    ctx.closePath();
     ctx.fillStyle='#000';ctx.fill();
 
-    // Subtle depth gradient inside hole only
-    const hg=ctx.createRadialGradient(p.x-pR*0.3,p.y-pR*0.3,pR*0.05,p.x,p.y,pR);
-    hg.addColorStop(0,'rgba(50,25,8,0.5)');
-    hg.addColorStop(1,'rgba(0,0,0,0)');
+    // Inner depth gradient
+    const hg=ctx.createRadialGradient(p.x-pR*0.25,p.y-pR*0.25,pR*0.05,p.x,p.y,pR*0.95);
+    hg.addColorStop(0,'rgba(55,25,6,0.5)');hg.addColorStop(1,'rgba(0,0,0,0)');
+    ctx.save();ctx.clip(); // clip depth to octagon shape already drawn above
+    ctx.restore();
     ctx.beginPath();ctx.arc(p.x,p.y,pR,0,Math.PI*2);
     ctx.fillStyle=hg;ctx.fill();
+
+    // Chamfer facet highlights — bright edge on each 45° cut to make them pop
+    const chamferLines = [
+      [[p.x-cLen/2, p.y-cOff],[p.x+cLen/2, p.y-cOff]],  // top
+      [[p.x+cOff,   p.y-cLen/2],[p.x+cOff, p.y+cLen/2]], // right
+      [[p.x+cLen/2, p.y+cOff],[p.x-cLen/2, p.y+cOff]],   // bottom
+      [[p.x-cOff,   p.y+cLen/2],[p.x-cOff, p.y-cLen/2]], // left
+    ];
+    const chamferAngles = [
+      [[p.x+cLen/2,p.y-cOff],[p.x+cOff,p.y-cLen/2]],   // NE cut
+      [[p.x+cOff,p.y+cLen/2],[p.x+cLen/2,p.y+cOff]],   // SE cut
+      [[p.x-cLen/2,p.y+cOff],[p.x-cOff,p.y+cLen/2]],   // SW cut
+      [[p.x-cOff,p.y-cLen/2],[p.x-cLen/2,p.y-cOff]],   // NW cut
+    ];
+    // Light edges on straight facets
+    ctx.strokeStyle='rgba(110,70,22,0.75)';ctx.lineWidth=2;
+    for(const [[x1,y1],[x2,y2]] of chamferLines){
+      ctx.beginPath();ctx.moveTo(x1,y1);ctx.lineTo(x2,y2);ctx.stroke();
+    }
+    // Brighter highlight on the angled 45° cuts
+    ctx.strokeStyle='rgba(180,120,40,0.9)';ctx.lineWidth=2.5;
+    for(const [[x1,y1],[x2,y2]] of chamferAngles){
+      ctx.beginPath();ctx.moveTo(x1,y1);ctx.lineTo(x2,y2);ctx.stroke();
+    }
   }
 
+  // ── "LUCKY BALLS" watermark on felt ────────────────────────────────────
+  ctx.save();
+  ctx.globalAlpha=0.07;
+  ctx.fillStyle='#ffffff';
+  if(T.isPortrait){
+    const fs2=Math.round(T.iw*0.18);
+    ctx.font='bold '+fs2+'px Black Ops One,cursive';
+    ctx.textAlign='center';ctx.textBaseline='middle';
+    ctx.fillText('LUCKY', T.ix+T.iw/2, T.iy+T.ih*0.44);
+    ctx.fillText('BALLS', T.ix+T.iw/2, T.iy+T.ih*0.56);
+  } else {
+    const fs2=Math.round(T.ih*0.20);
+    ctx.font='bold '+fs2+'px Black Ops One,cursive';
+    ctx.textAlign='center';ctx.textBaseline='middle';
+    ctx.fillText('LUCKY BALLS', T.ix+T.iw/2, T.iy+T.ih/2);
+  }
+  ctx.restore();
 
     // Inner cushion shadow line
   ctx.strokeStyle='rgba(0,0,0,0.6)';ctx.lineWidth=3;
@@ -1865,159 +1935,190 @@ function loop(ts){
   ctx.fillStyle='#0d0d0d';ctx.fillRect(0,0,canvas.width,canvas.height);
   if(G.cue){drawTable();drawTimerBar();drawAimLine();drawBalls();drawParticles();}
 
-  // ── UNLUCKY BALLS fireball overlay ──────────────────────────────────────
+  // ── UNLUCKY BALLS — Nuclear fireball overlay ─────────────────────────────
   if(G.explosion){
     const {x:ex, y:ey, t, maxT} = G.explosion;
     const p = t / maxT;
     const n2 = Date.now()/1000;
     const W=canvas.width, H=canvas.height;
-    // Fireball centred on screen for visual impact
     const FCX=W/2, FCY=H/2;
     const sz=Math.min(W,H);
 
-    // ── Shockwave ring blasts out (0–0.12) ───────────────────────────────────
-    if(p < 0.14){
-      const sp=p/0.14, sr=sz*0.8*sp, sa=(1-sp)*0.85;
+    // ── 0. Instant blinding flash ─────────────────────────────────────────────
+    if(p < 0.07){
+      const f=1-p/0.07;
+      ctx.fillStyle=`rgba(255,240,180,${f*0.98})`; ctx.fillRect(0,0,W,H);
+    }
+
+    // ── 1. Shockwave ring ─────────────────────────────────────────────────────
+    if(p < 0.18){
+      const sp=p/0.18, sr=Math.max(W,H)*sp, sa=(1-sp)*0.8;
       ctx.save();
-      const swg=ctx.createRadialGradient(FCX,FCY,sr*0.6,FCX,FCY,sr);
-      swg.addColorStop(0,'rgba(255,230,80,0)');
-      swg.addColorStop(0.65,'rgba(255,160,20,'+sa+')');
-      swg.addColorStop(1,'rgba(255,60,0,0)');
+      const swg=ctx.createRadialGradient(FCX,FCY,sr*0.7,FCX,FCY,sr);
+      swg.addColorStop(0,'rgba(255,200,50,0)');
+      swg.addColorStop(0.7,`rgba(255,140,10,${sa})`);
+      swg.addColorStop(1,'rgba(200,50,0,0)');
       ctx.beginPath();ctx.arc(FCX,FCY,sr,0,Math.PI*2);
       ctx.fillStyle=swg;ctx.fill();
-      ctx.strokeStyle='rgba(255,220,60,'+(sa)+')';
-      ctx.lineWidth=Math.max(4,sz*0.018);ctx.stroke();
+      ctx.strokeStyle=`rgba(255,230,80,${sa})`;
+      ctx.lineWidth=Math.max(5,sz*0.022);ctx.stroke();
       ctx.restore();
     }
 
-    // ── Expanding fireball (0–0.55) ──────────────────────────────────────────
-    if(p < 0.60){
-      const grow = p<0.18 ? p/0.18 : 1;
-      const shrink = p>0.3 ? 1-(p-0.3)/0.30 : 1;
-      const fp = Math.min(grow, Math.max(shrink, 0));
-      const fr = sz*(0.18 + 0.45*Math.min(p/0.18,1))*fp;
-      if(fr > 1){
+    // ── 2. Ground fire ring spreading outward ─────────────────────────────────
+    if(p > 0.04 && p < 0.55){
+      const fp=Math.min((p-0.04)/0.15,1), fade=p>0.35?1-(p-0.35)/0.20:1;
+      const gr2=sz*1.1*Math.min(p/0.12,1);
+      ctx.save();
+      for(let gi=0;gi<12;gi++){
+        const ga=(gi/12)*Math.PI*2, gdist=gr2*(0.7+0.3*Math.sin(n2*6+gi));
+        const gx=FCX+Math.cos(ga)*gdist*0.85, gy=FCY+Math.sin(ga)*gdist*0.35+sz*0.3;
+        const grr=sz*(0.06+gi*0.012)*fp*fade;
+        const gg=ctx.createRadialGradient(gx,gy,0,gx,gy,grr);
+        gg.addColorStop(0,`rgba(255,200,30,${fp*fade*0.9})`);
+        gg.addColorStop(0.4,`rgba(255,80,0,${fp*fade*0.7})`);
+        gg.addColorStop(1,'rgba(150,20,0,0)');
+        ctx.beginPath();ctx.arc(gx,gy,grr,0,Math.PI*2);
+        ctx.fillStyle=gg;ctx.fill();
+      }
+      ctx.restore();
+    }
+
+    // ── 3. Nuclear fireball — expands then rises as mushroom cap ─────────────
+    if(p < 0.75){
+      const grow=p<0.15?p/0.15:1;
+      const rise=p>0.2?(p-0.2)/0.55:0;
+      const shrink=p>0.45?1-(p-0.45)/0.30:1;
+      const fp=grow*shrink;
+      const fr=sz*(0.15+0.5*Math.min(p/0.15,1))*fp;
+      const ballY=FCY - sz*rise*0.55; // rises upward
+      if(fr>2){
         ctx.save();
-        // Outermost: dark red corona
-        const fb0=ctx.createRadialGradient(FCX,FCY,fr*0.55,FCX,FCY,fr*1.15);
-        fb0.addColorStop(0,'rgba(160,20,0,'+(fp*0.7)+')');
-        fb0.addColorStop(1,'rgba(60,5,0,0)');
-        ctx.beginPath();ctx.arc(FCX,FCY,fr*1.15,0,Math.PI*2);
+        // Dark red outer corona
+        const fb0=ctx.createRadialGradient(FCX,ballY,fr*0.6,FCX,ballY,fr*1.3);
+        fb0.addColorStop(0,`rgba(180,25,0,${fp*0.8})`);
+        fb0.addColorStop(1,'rgba(50,5,0,0)');
+        ctx.beginPath();ctx.arc(FCX,ballY,fr*1.3,0,Math.PI*2);
         ctx.fillStyle=fb0;ctx.fill();
-        // Mid: orange-red
-        const fb1=ctx.createRadialGradient(FCX,FCY,0,FCX,FCY,fr);
-        fb1.addColorStop(0,'rgba(255,255,160,'+(fp*0.95)+')');
-        fb1.addColorStop(0.18,'rgba(255,220,40,'+(fp*0.95)+')');
-        fb1.addColorStop(0.45,'rgba(255,100,5,'+(fp*0.88)+')');
-        fb1.addColorStop(0.75,'rgba(200,30,0,'+(fp*0.75)+')');
-        fb1.addColorStop(1,'rgba(80,8,0,0)');
-        ctx.beginPath();ctx.arc(FCX,FCY,fr,0,Math.PI*2);
+        // Orange-red main ball
+        const fb1=ctx.createRadialGradient(FCX,ballY,0,FCX,ballY,fr);
+        fb1.addColorStop(0,  `rgba(255,255,160,${fp*0.97})`);
+        fb1.addColorStop(0.20,`rgba(255,220,30,${fp*0.95})`);
+        fb1.addColorStop(0.50,`rgba(255,90,5,${fp*0.90})`);
+        fb1.addColorStop(0.80,`rgba(200,25,0,${fp*0.75})`);
+        fb1.addColorStop(1,  'rgba(80,5,0,0)');
+        ctx.beginPath();ctx.arc(FCX,ballY,fr,0,Math.PI*2);
         ctx.fillStyle=fb1;ctx.fill();
-        // Bright white-yellow core
-        const fc=ctx.createRadialGradient(FCX,FCY,0,FCX,FCY,fr*0.28);
-        fc.addColorStop(0,'rgba(255,255,255,'+(fp)+')');
-        fc.addColorStop(1,'rgba(255,250,120,0)');
-        ctx.beginPath();ctx.arc(FCX,FCY,fr*0.28,0,Math.PI*2);
-        ctx.fillStyle=fc;ctx.fill();
+        // White-hot core
+        const fb2=ctx.createRadialGradient(FCX,ballY,0,FCX,ballY,fr*0.3);
+        fb2.addColorStop(0,`rgba(255,255,255,${fp*0.95})`);
+        fb2.addColorStop(1,'rgba(255,240,100,0)');
+        ctx.beginPath();ctx.arc(FCX,ballY,fr*0.3,0,Math.PI*2);
+        ctx.fillStyle=fb2;ctx.fill();
         ctx.restore();
       }
     }
 
-    // ── LARGE flame crown around text — fills the screen (0.05–0.85) ──────────
-    if(p > 0.05 && p < 0.88){
-      const fIn = Math.min((p-0.05)/0.12, 1);
-      const fOut = p > 0.65 ? 1-(p-0.65)/0.23 : 1;
-      const fAlpha = fIn * fOut;
-      const flameH = H * 0.72 * fIn * Math.min(1,(1-(p-0.05)*0.4));
-      const flameW = W * 0.55;
+    // ── 4. Mushroom stem ─────────────────────────────────────────────────────
+    if(p > 0.18 && p < 0.90){
+      const sp=Math.min((p-0.18)/0.2,1), fade=p>0.65?1-(p-0.65)/0.25:1;
+      const stemH=H*0.6*sp*fade, stemW=sz*0.08;
       ctx.save();
-      // Draw 9 large flame tongues spanning full width of screen
-      for(let ti=0;ti<9;ti++){
-        const xOff = (ti/(8)) * W - W/2; // spread across full width
-        const hMod = 0.55 + 0.45*Math.sin(n2*7 + ti*1.1);
-        const wMod = 0.6  + 0.4*Math.cos(n2*5 + ti*0.9);
-        const fh = flameH * hMod;
-        const fw = (flameW/9) * wMod * 1.6;
+      const sg=ctx.createLinearGradient(FCX-stemW,FCY,FCX+stemW,FCY);
+      sg.addColorStop(0,'rgba(200,80,5,0)');
+      sg.addColorStop(0.3,`rgba(255,120,10,${0.7*sp*fade})`);
+      sg.addColorStop(0.7,`rgba(255,120,10,${0.7*sp*fade})`);
+      sg.addColorStop(1,'rgba(200,80,5,0)');
+      ctx.fillStyle=sg;
+      ctx.fillRect(FCX-stemW,FCY-stemH,stemW*2,stemH);
+      ctx.restore();
+    }
+
+    // ── 5. Full-screen flame wall (0.05–0.80) ────────────────────────────────
+    if(p > 0.05 && p < 0.82){
+      const fIn=Math.min((p-0.05)/0.10,1);
+      const fOut=p>0.55?1-(p-0.55)/0.27:1;
+      const fa=fIn*fOut;
+      ctx.save();
+      for(let ti=0;ti<11;ti++){
+        const xpos=(ti/10)*W;
+        const fh=H*(0.55+0.35*Math.sin(n2*8+ti*1.4))*fa;
+        const fw=W*0.14*(0.6+0.4*Math.cos(n2*6+ti*0.7));
         ctx.save();
-        ctx.translate(FCX + xOff, H); // base at bottom of screen
-        // Outer flame (deep red-orange, wide)
-        const fg1 = ctx.createRadialGradient(0, -fh*0.25, fw*0.1, 0, -fh*0.5, fh);
-        fg1.addColorStop(0, `rgba(255,80,0,${fAlpha*0.9})`);
-        fg1.addColorStop(0.4,`rgba(220,30,0,${fAlpha*0.75})`);
-        fg1.addColorStop(1, `rgba(100,5,0,0)`);
+        ctx.translate(xpos,H);
+        // Outer tongue
+        const tg1=ctx.createRadialGradient(0,-fh*0.3,5,0,-fh*0.5,fh);
+        tg1.addColorStop(0,`rgba(255,90,0,${fa*0.92})`);
+        tg1.addColorStop(0.45,`rgba(200,30,0,${fa*0.75})`);
+        tg1.addColorStop(1,'rgba(80,5,0,0)');
         ctx.beginPath();
-        ctx.moveTo(-fw*0.5, 0);
-        ctx.bezierCurveTo(-fw*1.2, -fh*0.3, -fw*0.9, -fh*0.7, xOff*0.02, -fh);
-        ctx.bezierCurveTo( fw*0.9, -fh*0.7,  fw*1.2, -fh*0.3,  fw*0.5, 0);
+        ctx.moveTo(-fw*0.5,0);
+        ctx.bezierCurveTo(-fw*1.3,-fh*0.28,-fw,-fh*0.72,(ti-5)*W*0.006,-fh);
+        ctx.bezierCurveTo(fw,-fh*0.72,fw*1.3,-fh*0.28,fw*0.5,0);
         ctx.closePath();
-        ctx.fillStyle = fg1; ctx.fill();
-        // Mid flame (orange-yellow)
-        const fg2 = ctx.createRadialGradient(0, -fh*0.3, 2, 0, -fh*0.4, fh*0.75);
-        fg2.addColorStop(0, `rgba(255,200,10,${fAlpha*0.85})`);
-        fg2.addColorStop(0.5,`rgba(255,100,0,${fAlpha*0.6})`);
-        fg2.addColorStop(1, `rgba(200,20,0,0)`);
+        ctx.fillStyle=tg1;ctx.fill();
+        // Mid orange-yellow
+        const tg2=ctx.createRadialGradient(0,-fh*0.35,2,0,-fh*0.38,fh*0.7);
+        tg2.addColorStop(0,`rgba(255,210,10,${fa*0.88})`);
+        tg2.addColorStop(0.5,`rgba(255,110,0,${fa*0.65})`);
+        tg2.addColorStop(1,'rgba(180,20,0,0)');
         ctx.beginPath();
-        ctx.moveTo(-fw*0.3, 0);
-        ctx.bezierCurveTo(-fw*0.8, -fh*0.35, -fw*0.6, -fh*0.72, 0, -fh*0.92);
-        ctx.bezierCurveTo( fw*0.6, -fh*0.72,  fw*0.8, -fh*0.35, fw*0.3, 0);
+        ctx.moveTo(-fw*0.28,0);
+        ctx.bezierCurveTo(-fw*0.75,-fh*0.3,-fw*0.55,-fh*0.75,0,-fh*0.94);
+        ctx.bezierCurveTo(fw*0.55,-fh*0.75,fw*0.75,-fh*0.3,fw*0.28,0);
         ctx.closePath();
-        ctx.fillStyle = fg2; ctx.fill();
-        // Bright yellow-white core
-        const fg3 = ctx.createRadialGradient(0, -fh*0.25, 0, 0, -fh*0.28, fw*0.4);
-        fg3.addColorStop(0, `rgba(255,255,180,${fAlpha*0.95})`);
-        fg3.addColorStop(1, `rgba(255,180,0,0)`);
-        ctx.beginPath();
-        ctx.ellipse(0, -fh*0.28, fw*0.28, fh*0.32, 0, 0, Math.PI*2);
-        ctx.fillStyle = fg3; ctx.fill();
+        ctx.fillStyle=tg2;ctx.fill();
+        // Bright core
+        const tg3=ctx.createRadialGradient(0,-fh*0.28,0,0,-fh*0.3,fw*0.38);
+        tg3.addColorStop(0,`rgba(255,255,180,${fa*0.95})`);
+        tg3.addColorStop(1,'rgba(255,180,0,0)');
+        ctx.beginPath();ctx.ellipse(0,-fh*0.28,fw*0.26,fh*0.30,0,0,Math.PI*2);
+        ctx.fillStyle=tg3;ctx.fill();
         ctx.restore();
       }
       ctx.restore();
     }
 
-    // ── Rolling smoke balls (0.2–1.0) ────────────────────────────────────────
-    if(p > 0.20){
-      const sphase=Math.min((p-0.20)/0.25,1);
+    // ── 6. Rolling mushroom cap smoke ────────────────────────────────────────
+    if(p > 0.25){
+      const sp=Math.min((p-0.25)/0.20,1), fade=p>0.70?1-(p-0.70)/0.30:1;
+      const capY=FCY-sz*0.42*sp;
       ctx.save();
-      for(let si=0;si<8;si++){
-        const ang=(si/8)*Math.PI*2+p*1.2+si*0.5;
-        const dist=sz*(0.12+si*0.04)*sphase;
-        const rise=sz*0.22*sphase*(0.5+si*0.08);
-        const scx=FCX+Math.cos(ang)*dist;
-        const scy=FCY-rise+Math.sin(ang)*dist*0.3;
-        const sr=sz*(0.05+si*0.018)*sphase;
-        const sa=Math.min(sphase*0.5,0.42)*(1-p*0.7);
-        if(sa<=0||sr<=0) continue;
-        const smg=ctx.createRadialGradient(scx-sr*0.2,scy-sr*0.2,0,scx,scy,sr);
-        smg.addColorStop(0,'rgba(55,40,25,'+sa+')');
-        smg.addColorStop(0.6,'rgba(30,20,10,'+(sa*0.7)+')');
-        smg.addColorStop(1,'rgba(8,5,2,0)');
-        ctx.beginPath();ctx.arc(scx,scy,sr,0,Math.PI*2);
-        ctx.fillStyle=smg;ctx.fill();
+      for(let ci=0;ci<10;ci++){
+        const ca=(ci/10)*Math.PI*2;
+        const cr=sz*(0.18+ci*0.025)*sp;
+        const cx2=FCX+Math.cos(ca)*cr*1.1, cy2=capY+Math.sin(ca)*cr*0.38;
+        const csr=sz*(0.07+ci*0.018)*sp;
+        const csa=Math.min(sp*0.55,0.5)*fade*(1-p*0.4);
+        if(csa<=0||csr<=0) continue;
+        const cg=ctx.createRadialGradient(cx2-csr*0.2,cy2-csr*0.2,0,cx2,cy2,csr);
+        cg.addColorStop(0,`rgba(60,40,18,${csa})`);
+        cg.addColorStop(0.6,`rgba(28,18,6,${csa*0.7})`);
+        cg.addColorStop(1,'rgba(6,3,1,0)');
+        ctx.beginPath();ctx.arc(cx2,cy2,csr,0,Math.PI*2);
+        ctx.fillStyle=cg;ctx.fill();
       }
       ctx.restore();
     }
 
-    // ── Dark overlay — appears fast so text is always readable ─────────────────
-    if(p > 0.08){
-      const da=Math.min((p-0.08)/0.12,0.85);
-      ctx.fillStyle='rgba(4,1,1,'+da+')';
-      ctx.fillRect(0,0,W,H);
+    // ── 7. Dark overlay closes in ─────────────────────────────────────────────
+    if(p > 0.10){
+      const da=Math.min((p-0.10)/0.15,0.87);
+      ctx.fillStyle=`rgba(3,1,1,${da})`; ctx.fillRect(0,0,W,H);
     }
 
-    // ── "UNLUCKY BALLS" — appears immediately, lingers full duration ───────────
-    // Text fades in quickly (first 8%), stays full opacity, fades out in last 5%
+    // ── 8. "UNLUCKY BALLS" — burning paper text ────────────────────────────────
     if(p > 0.0){
-      const fadeIn = Math.min(p/0.08, 1);
-      const fadeOut = p > 0.95 ? 1-(p-0.95)/0.05 : 1;
-      const tp = fadeIn * fadeOut;
-      const flicker=0.97+0.03*Math.sin(n2*18);
+      const fadeIn=Math.min(p/0.07,1);
+      const fadeOut=p>0.93?1-(p-0.93)/0.07:1;
+      const tp=fadeIn*fadeOut;
+      const flicker=0.97+0.03*Math.sin(n2*20+0.5);
       ctx.save();
       ctx.translate(W/2, H/2);
       ctx.scale(flicker,flicker);
       ctx.globalAlpha=Math.max(0,tp);
-      ctx.textAlign='center'; ctx.textBaseline='middle';
+      ctx.textAlign='center';ctx.textBaseline='middle';
 
-      // Auto-size
       let fs=Math.round(Math.min(W*0.2,H*0.22));
       ctx.font='bold '+fs+'px Black Ops One,cursive';
       const mxw=W*0.86;
@@ -2026,36 +2127,64 @@ function loop(ts){
       }
       const lh=Math.round(fs*1.22);
 
-      // Pass 1: fat black outline (max contrast backdrop)
-      ctx.lineJoin='round'; ctx.strokeStyle='#000';
-      ctx.lineWidth=Math.max(12,fs*0.32);
-      ctx.shadowBlur=fs*1.2; ctx.shadowColor='rgba(0,0,0,1)';
+      // Fire halo behind text — big flame shape surrounding both words
+      const haloR=Math.max(ctx.measureText('UNLUCKY').width,ctx.measureText('BALLS').width)*0.55+fs*0.8;
+      for(let hi=0;hi<8;hi++){
+        const ha=(hi/8)*Math.PI*2;
+        const hfh=haloR*(1.2+0.4*Math.sin(n2*9+hi*1.3));
+        const hfw=haloR*(0.3+0.2*Math.cos(n2*7+hi*0.8));
+        ctx.save();
+        ctx.translate(Math.cos(ha)*haloR*0.4, lh*0.5+Math.sin(ha)*lh*0.5);
+        ctx.rotate(ha-Math.PI/2);
+        const hfg=ctx.createRadialGradient(0,0,2,0,0,hfh);
+        hfg.addColorStop(0,`rgba(255,180,0,${0.7*tp})`);
+        hfg.addColorStop(0.5,`rgba(255,60,0,${0.45*tp})`);
+        hfg.addColorStop(1,'rgba(120,10,0,0)');
+        ctx.beginPath();
+        ctx.moveTo(-hfw,0);
+        ctx.bezierCurveTo(-hfw*1.2,-hfh*0.4,0,-hfh,0,-hfh);
+        ctx.bezierCurveTo(0,-hfh,hfw*1.2,-hfh*0.4,hfw,0);
+        ctx.closePath();
+        ctx.fillStyle=hfg;ctx.fill();
+        ctx.restore();
+      }
+
+      // Pass 1: Extra-fat black halo — deep black all around letters
+      ctx.lineJoin='round';ctx.strokeStyle='#000';
+      ctx.lineWidth=Math.max(20,fs*0.48);
+      ctx.shadowBlur=fs*2.0;ctx.shadowColor='rgba(0,0,0,1)';
       ctx.strokeText('UNLUCKY',0,-lh/2);
       ctx.strokeText('BALLS',  0, lh/2);
 
-      // Pass 2: outer orange glow stroke
-      ctx.shadowBlur=fs*0.7; ctx.shadowColor='#ff5500';
-      ctx.strokeStyle='#ff4400';
-      ctx.lineWidth=Math.max(6,fs*0.15);
+      // Pass 2: Second black layer — fills in any gaps
+      ctx.lineWidth=Math.max(14,fs*0.32);
+      ctx.shadowBlur=fs*1.2;
       ctx.strokeText('UNLUCKY',0,-lh/2);
       ctx.strokeText('BALLS',  0, lh/2);
 
-      // Pass 3: fire gradient fill — red at bottom, yellow-white at top
-      const tgy=ctx.createLinearGradient(0,-lh,0,lh);
-      tgy.addColorStop(0,'#ffffa0');   // hot yellow-white top
-      tgy.addColorStop(0.35,'#ffcc00'); // yellow
-      tgy.addColorStop(0.65,'#ff6600'); // orange
-      tgy.addColorStop(1,'#cc1100');    // deep red bottom
-      ctx.shadowBlur=fs*0.5; ctx.shadowColor='#ff8800';
+      // Pass 3: Deep red burning-edge stroke
+      ctx.shadowBlur=fs;ctx.shadowColor='#cc2200';
+      ctx.strokeStyle='#880000';
+      ctx.lineWidth=Math.max(8,fs*0.18);
+      ctx.strokeText('UNLUCKY',0,-lh/2);
+      ctx.strokeText('BALLS',  0, lh/2);
+
+      // Pass 4: Fire gradient fill — deep red at base, yellow-white at peak
+      const tgy=ctx.createLinearGradient(0,-lh*0.65,0,lh*0.65);
+      tgy.addColorStop(0,  '#ffff80'); // white-hot tip
+      tgy.addColorStop(0.2,'#ffee00'); // yellow
+      tgy.addColorStop(0.5,'#ff6600'); // orange
+      tgy.addColorStop(0.8,'#dd1100'); // red
+      tgy.addColorStop(1,  '#660000'); // char black-red base
+      ctx.shadowBlur=fs*0.7;ctx.shadowColor='#ff4400';
       ctx.fillStyle=tgy;
       ctx.fillText('UNLUCKY',0,-lh/2);
       ctx.fillText('BALLS',  0, lh/2);
 
-      // Pass 4: bright white centre sheen (top portion only)
+      // Pass 5: Tiny white-hot highlight only on top third of letters
       ctx.save();
-      ctx.globalAlpha*=0.45;
-      ctx.shadowBlur=0;
-      ctx.fillStyle='#ffffff';
+      ctx.globalAlpha*=0.22;ctx.shadowBlur=0;
+      ctx.fillStyle='#ffffc0';
       ctx.fillText('UNLUCKY',0,-lh/2);
       ctx.fillText('BALLS',  0, lh/2);
       ctx.restore();
