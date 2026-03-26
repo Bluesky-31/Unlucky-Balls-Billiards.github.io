@@ -1111,11 +1111,10 @@ function explodeBall(b) {
 }
 
 function checkEnd() {
-  // Only trigger game-over from explosion if it just happened (G.explosion active)
-  // Balls that previously exploded as danger bombs stay exploded but shouldn't
-  // block a level clear when all remaining balls are potted.
   if(G.explosion && G.explosion.t < G.explosion.maxT) return; // let explosion play out
-  if(!G.balls.some(b=>!b.potted&&!b.exploded)){
+  // Win = all non-danger balls are potted or exploded (danger bombs don't block clear)
+  const targetBalls = G.balls.filter(b => !b.isDanger);
+  if(!targetBalls.some(b=>!b.potted&&!b.exploded)){
     G.score+=G.level*500;
     if(G.level>=MAX_LEVEL){
       // Completed all levels — show rankings as champion
