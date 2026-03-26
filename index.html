@@ -657,7 +657,7 @@ window.addEventListener('resize', resizeCanvas);
 // ── Game state ─────────────────────────────────────────────────────────────
 const BCOLORS = ['#f5c518','#2255cc','#ee2222','#7b2fbe','#ff8800','#228b22','#8b2500','#111111','#ddbb00','#1177cc','#cc2244','#116611','#aa4400','#333333'];
 let BALL_R = 23; // updated by mobile mode
-const FRICTION = 0.978;
+const FRICTION = 0.983;
 const MIN_SPD  = 0.25;
 
 let G = {
@@ -858,7 +858,7 @@ document.addEventListener('touchmove', e => {
     // Incremental delta from last frame — accumulates into G.aimAngle
     const dx = t.clientX - aimLastX;
     const dy = t.clientY - aimLastY;
-    G.aimAngle += (dx + dy * 0.3) * SENSITIVITY;
+    G.aimAngle += dx * SENSITIVITY; // left→right = clockwise, right→left = counter-clockwise
     // Update last position for next frame
     aimLastX = t.clientX;
     aimLastY = t.clientY;
