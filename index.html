@@ -924,9 +924,11 @@ canvas.addEventListener('mousemove', e => {
   G.aimAngle = Math.atan2(my - G.cue.y, mx - G.cue.x);
 });
 
-// Click anywhere on canvas to shoot (desktop only — not mobile)
+// Click anywhere on canvas to shoot (desktop/mouse only)
+// pointerType==='mouse' ensures touch-generated synthetic clicks are ignored
 canvas.addEventListener('click', e => {
-  if (settings.mobile) return; // touch devices use the FIRE button
+  if (e.pointerType === 'touch') return; // ignore touch-generated clicks
+  if (settings.mobile) return;
   if (G.phase !== 'aiming' || !G.cue) return;
   const rect = canvas.getBoundingClientRect();
   const mx = e.clientX - rect.left;
@@ -934,6 +936,11 @@ canvas.addEventListener('click', e => {
   G.aimAngle = Math.atan2(my - G.cue.y, mx - G.cue.x);
   shoot();
 });
+
+// Also block via pointerdown to catch any remaining touch-fire paths
+canvas.addEventListener('pointerdown', e => {
+  if (e.pointerType === 'touch') e.stopPropagation();
+}, {passive:true});
 
 // Also track mouse even when it moves over the sidebar/controls area on desktop
 document.addEventListener('mousemove', e => {
