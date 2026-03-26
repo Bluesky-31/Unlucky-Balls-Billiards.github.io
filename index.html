@@ -473,7 +473,7 @@ function saveSetting(key, val) {
 }
 
 function applyMobileMode() {
-  BALL_R = settings.mobile ? 12 : 23; // mobile balls 50% bigger than before (was 8)
+  BALL_R = settings.mobile ? 15 : 23; // mobile balls 25% bigger than before (was 12)
   const lbl = document.getElementById('mobile-label');
   const cb  = document.getElementById('home-mobile');
   // Label: left = current mode name; toggle right = switch to other
@@ -613,31 +613,33 @@ function buildTable() {
   const ox = 0, oy = 0;
   const ix = ox+RAIL, iy = oy+RAIL, iw = tw-RAIL*2, ih = th-RAIL*2;
   // Pocket radius: base 10% of short side, scaled up 40%
-  const PR = settings.mobile ? Math.round(58 / 3) : 58; // mobile = 1/3 desktop size
-  T = { ox,oy,ow:tw,oh:th, ix,iy,iw,ih, rail:RAIL,wood:WOOD,pr:PR,
+  // Standard billiards: hole diameter = 2× ball diameter = 4× ball radius
+  // Corner pocket radius = 2.0× BALL_R, side = 1.75× BALL_R
+  const PR_CORNER = Math.round(BALL_R * 2.0);
+  const PR_SIDE   = Math.round(BALL_R * 1.75);
+  const PR = PR_CORNER; // default fallback
+  T = { ox,oy,ow:tw,oh:th, ix,iy,iw,ih, rail:RAIL,wood:WOOD,pr:PR_CORNER,
         left:ix, right:ix+iw, top:iy, bottom:iy+ih, isPortrait };
-  const PRC = PR; // corner pockets same size as side
-  const PRS = PR; // side pockets = base size
-  // Corner pockets: centre is inset into the felt by ~35% of pocket radius
-  // so the hole visually cuts into the cloth, not into the outer wood.
-  const CO = Math.round(PRC * 0.35); // corner inset offset
+  // All pockets: corner pockets at exact felt corner, side pockets centred on rail
+  // Rail centre = halfway between outer edge and felt edge = RAIL/2 from felt
+  const railMid = Math.round(RAIL / 2); // pocket centre sits mid-rail
   if (isPortrait) {
     T.pockets = [
-      {x:T.ix+CO,       y:T.iy+CO,         r:PRC}, // top-left corner
-      {x:T.ix+T.iw-CO,  y:T.iy+CO,         r:PRC}, // top-right corner
-      {x:T.ix,          y:T.iy+T.ih/2,     r:PRS}, // mid-left side
-      {x:T.ix+T.iw,     y:T.iy+T.ih/2,     r:PRS}, // mid-right side
-      {x:T.ix+CO,       y:T.iy+T.ih-CO,    r:PRC}, // bottom-left corner
-      {x:T.ix+T.iw-CO,  y:T.iy+T.ih-CO,    r:PRC}, // bottom-right corner
+      {x:T.ix,          y:T.iy,            r:PR_CORNER}, // top-left corner
+      {x:T.ix+T.iw,     y:T.iy,            r:PR_CORNER}, // top-right corner
+      {x:T.ix-railMid,  y:T.iy+T.ih/2,     r:PR_SIDE},   // mid-left side
+      {x:T.ix+T.iw+railMid, y:T.iy+T.ih/2, r:PR_SIDE},   // mid-right side
+      {x:T.ix,          y:T.iy+T.ih,       r:PR_CORNER}, // bottom-left corner
+      {x:T.ix+T.iw,     y:T.iy+T.ih,       r:PR_CORNER}, // bottom-right corner
     ];
   } else {
     T.pockets = [
-      {x:T.ix+CO,        y:T.iy+CO,        r:PRC}, // top-left corner
-      {x:T.ix+T.iw/2,    y:T.iy,           r:PRS}, // top-mid side
-      {x:T.ix+T.iw-CO,   y:T.iy+CO,        r:PRC}, // top-right corner
-      {x:T.ix+CO,        y:T.iy+T.ih-CO,   r:PRC}, // bottom-left corner
-      {x:T.ix+T.iw/2,    y:T.iy+T.ih,      r:PRS}, // bottom-mid side
-      {x:T.ix+T.iw-CO,   y:T.iy+T.ih-CO,   r:PRC}, // bottom-right corner
+      {x:T.ix,          y:T.iy,                r:PR_CORNER}, // top-left corner
+      {x:T.ix+T.iw/2,   y:T.iy-railMid,        r:PR_SIDE},   // top-mid side
+      {x:T.ix+T.iw,     y:T.iy,                r:PR_CORNER}, // top-right corner
+      {x:T.ix,          y:T.iy+T.ih,           r:PR_CORNER}, // bottom-left corner
+      {x:T.ix+T.iw/2,   y:T.iy+T.ih+railMid,   r:PR_SIDE},   // bottom-mid side
+      {x:T.ix+T.iw,     y:T.iy+T.ih,           r:PR_CORNER}, // bottom-right corner
     ];
   }
 }
@@ -853,9 +855,11 @@ function isTouchInControls(t) {
 // multiple touch gestures. Lifting and re-placing a finger never resets
 // the angle — it always continues from wherever it was left.
 
-let aimTouchId   = null;  // identifier of the active tracking touch
-let aimLastX     = 0;     // last known clientX for the active touch
-let aimLastY     = 0;     // last known clientY for the active touch
+let aimTouchId    = null;  // identifier of the active tracking touch
+let aimLastX      = 0;     // last known clientX for the active touch
+let aimLastY      = 0;     // last known clientY for the active touch
+let aimTotalMove  = 0;     // cumulative pixels moved this touch
+let aimTouchStart = 0;     // timestamp when touch began (ms)
 const SENSITIVITY = 0.005; // halved for softer fine-control // radians per pixel of horizontal drag
 
 document.addEventListener('touchstart', e => {
@@ -864,9 +868,11 @@ document.addEventListener('touchstart', e => {
   const t = e.changedTouches[0];
   if (isTouchInControls(t)) return;
   // Record where this touch landed — angle does NOT change on touchstart
-  aimTouchId = t.identifier;
-  aimLastX   = t.clientX;
-  aimLastY   = t.clientY;
+  aimTouchId    = t.identifier;
+  aimLastX      = t.clientX;
+  aimLastY      = t.clientY;
+  aimTotalMove  = 0;
+  aimTouchStart = Date.now(); // record when touch began
 }, {passive:true});
 
 document.addEventListener('touchmove', e => {
@@ -879,7 +885,7 @@ document.addEventListener('touchmove', e => {
     const dx = t.clientX - aimLastX;
     const dy = t.clientY - aimLastY;
     G.aimAngle += dx * SENSITIVITY; // left→right = clockwise, right→left = counter-clockwise
-    // Update last position for next frame
+    aimTotalMove += Math.hypot(dx, dy); // accumulate total finger travel
     aimLastX = t.clientX;
     aimLastY = t.clientY;
     break;
@@ -888,8 +894,20 @@ document.addEventListener('touchmove', e => {
 
 document.addEventListener('touchend', e => {
   for (let i=0; i<e.changedTouches.length; i++) {
-    if (e.changedTouches[i].identifier === aimTouchId) {
-      aimTouchId = null; // angle stays exactly where it is
+    const t = e.changedTouches[i];
+    if (t.identifier === aimTouchId) {
+      // If the finger barely moved (tap not drag), fire the cue on mobile
+      // Fire only if touch duration was very short — a quick tap
+      // Micro-adjustments take longer even if tiny distance, so they won't trigger
+      const touchDuration = Date.now() - aimTouchStart;
+      if (settings.mobile && touchDuration < 180 && G.phase === 'aiming' && G.cue) {
+        // Make sure tap wasn't on the controls panel
+        const el = document.elementFromPoint(t.clientX, t.clientY);
+        if (!controlsEl.contains(el)) {
+          shoot();
+        }
+      }
+      aimTouchId = null;
       break;
     }
   }
@@ -907,6 +925,8 @@ document.addEventListener('touchcancel', e => {
 // ── Desktop mouse: cue always points from cue ball toward mouse cursor ──────
 // No clicking required — just move the mouse to aim, Space/Enter to fire.
 canvas.addEventListener('mousemove', e => {
+  if (settings.mobile) return; // mobile uses touch drag, not mouse position
+  if (e.pointerType === 'touch') return; // block touch-generated mouse events
   if (G.phase !== 'aiming' || !G.cue) return;
   const rect = canvas.getBoundingClientRect();
   const mx = e.clientX - rect.left;
@@ -1022,9 +1042,8 @@ function shoot() {
   // Desktop: ±40% of default(72) across slider range
   // Mobile:  ±40% of default(72) across slider range
   // Both use linear formula: spd = a + power*b
-  const spd = settings.mobile
-    ? -0.2469 + G.power * 0.1234   // mobile: min=5.18, default=8.64, max=12.10
-    : 25.4388 + G.power*(-0.7220) + G.power*G.power*0.0082; // quadratic: min=9.5, default=15.84, max=35
+  // Same physics for mobile and desktop
+  const spd = 25.4388 + G.power*(-0.7220) + G.power*G.power*0.0082; // quadratic: min=9.5, default=15.84, max=35
   G.cue.vx=Math.cos(G.aimAngle)*spd + G.spinX*1.4;
   G.cue.vy=Math.sin(G.aimAngle)*spd + G.spinY*1.4;
   G.phase='rolling'; G.combo=0;
@@ -1067,8 +1086,9 @@ function moveBall(ball,isCue) {
     const pR = p.r || T.pr; // per-pocket radius
     const dist = Math.hypot(ball.x-p.x,ball.y-p.y);
     // Chamfer zone: 20% outside pocket radius — gently pull ball in
-    if(dist < pR * 1.20 && dist >= pR){
-      const pull = 0.06 * ((pR*1.20 - dist)/(pR*0.20));
+    if(dist < pR * 1.25 && dist >= pR){
+      // Stronger chamfer pull — simulates curved leather lip guiding ball in
+      const pull = 0.12 * ((pR*1.25 - dist)/(pR*0.25));
       ball.vx += (p.x - ball.x) / dist * pull;
       ball.vy += (p.y - ball.y) / dist * pull;
     }
@@ -1106,35 +1126,46 @@ function resolveBB(a,b) {
   if(dvn>0){a.vx-=dvn*nx;a.vy-=dvn*ny;b.vx+=dvn*nx;b.vy+=dvn*ny;}
 }
 
-function physics() {
-  if(G.phase!=='rolling') return;
-  moveBall(G.cue,true);
-  const active=G.balls.filter(b=>!b.potted&&!b.exploded);
-  for(const b of active) moveBall(b,false);
-  for(const b of active) {
-    // Check danger bomb BEFORE resolving collision so we catch the touch
-    if(b.isDanger && !b.potted && !b.exploded){
-      const d = Math.hypot(G.cue.x-b.x, G.cue.y-b.y);
-      // Detonate when cue ball physically touches the bomb (same threshold as resolveBB)
-      // resolveBB uses a.r + b.r to detect contact — we use the same so it fires
-      // at the exact moment of visual contact, not after being pushed away
-      if(d < G.cue.r + b.r){
-        b.exploded = true;
-        triggerLoss(b.x, b.y);
-        return;
-      }
-    } else {
-      resolveBB(G.cue,b);
+function checkDangerBombs() {
+  // Sweep check — called before and after cue moves
+  if(!G.cue) return false;
+  for(const b of G.balls){
+    if(!b.isDanger || b.potted || b.exploded) continue;
+    const d = Math.hypot(G.cue.x - b.x, G.cue.y - b.y);
+    if(d < G.cue.r + b.r){
+      b.exploded = true;
+      triggerLoss(b.x, b.y);
+      return true;
     }
   }
-  for(let i=0;i<active.length;i++) for(let j=i+1;j<active.length;j++) resolveBB(active[i],active[j]);
+  return false;
+}
+
+function physics() {
+  if(G.phase!=='rolling') return;
+
+  // Pre-move danger check
+  if(checkDangerBombs()) return;
+
+  moveBall(G.cue,true);
+
+  // Post-move danger check (catches high-speed pass-through)
+  if(checkDangerBombs()) return;
+
+  const active=G.balls.filter(b=>!b.potted&&!b.exploded);
+  for(const b of active) moveBall(b,false);
+
+  // Resolve collisions — danger bombs don't bounce, they explode on contact
+  for(const b of active){
+    if(!b.isDanger) resolveBB(G.cue,b);
+  }
+  for(let i=0;i<active.length;i++) for(let j=i+1;j<active.length;j++){
+    if(!active[i].isDanger && !active[j].isDanger) resolveBB(active[i],active[j]);
+  }
 
   const cs=Math.hypot(G.cue.vx,G.cue.vy);
-  // Allow aiming once everything is slow enough — zero ALL velocities immediately
-  // so no residual motion carries into the next shot.
-  const SLOW = MIN_SPD * 3; // unlock aiming while balls still have slight motion
+  const SLOW = MIN_SPD * 3;
   if(cs < SLOW && !active.some(b=>Math.hypot(b.vx,b.vy) > SLOW)) {
-    // Hard-zero every ball so nothing can drift later
     G.cue.vx=0; G.cue.vy=0;
     active.forEach(b=>{ b.vx=0; b.vy=0; });
     G.phase='aiming';
@@ -1201,11 +1232,11 @@ function saveScore(entry) {
 
 // Trigger the UNLUCKY BALLS explosion + animation before showing rankings
 function triggerLoss(x, y) {
-  if (G.phase === 'exploding') return;
+  if (G.explosion && G.explosion.t > 0 && G.explosion.t < G.explosion.maxT) return;
   G.phase = 'exploding';
   G.shake = 1.4;
-  const spd = settings.mobile ? 7 : 14;
-  const cnt = settings.mobile ? 80 : 150;
+  const spd = 14; // same explosion intensity on both
+  const cnt = 150; // same particle count on both
   // Burst particles — debris + embers
   for(let i=0;i<cnt;i++){
     const a=Math.random()*Math.PI*2, s=1+Math.random()*spd;
@@ -1376,6 +1407,29 @@ function drawTable() {
   ctx.strokeRect(ox+rail,oy+rail,ow-rail*2,oh-rail*2);
   ctx.restore();
 
+
+  // ── Pocket holes drawn BEFORE felt so cloth appears cut through ──────────
+  // Drawn at this point: wood/rail is painted, felt not yet — holes punch through
+  const tcx2=T.ix+T.iw/2, tcy2=T.iy+T.ih/2;
+  for(const p of T.pockets){
+    const pR = p.r || pr;
+    const isCorner = (p.x < T.ix+T.iw*0.3 || p.x > T.ix+T.iw*0.7); // rough corner test
+
+    // 1. Outer shadow ring — dark halo grounding the hole in the surface
+    const sg = ctx.createRadialGradient(p.x,p.y,pR*0.6,p.x,p.y,pR*1.8);
+    sg.addColorStop(0,'rgba(0,0,0,0.85)');
+    sg.addColorStop(0.5,'rgba(0,0,0,0.4)');
+    sg.addColorStop(1,'rgba(0,0,0,0)');
+    ctx.beginPath();ctx.arc(p.x,p.y,pR*1.8,0,Math.PI*2);
+    ctx.fillStyle=sg;ctx.fill();
+
+    // 2. Black hole — pure circle (drawn before felt clips into it)
+    ctx.beginPath();ctx.arc(p.x,p.y,pR,0,Math.PI*2);
+    ctx.fillStyle='#000';ctx.fill();
+
+    // depth gradient removed — clean black hole with shadow only
+  }
+
   // ── Felt playing surface ──────────────────────────────────────────────────
   const fc = FELT_COLORS[settings.felt] || FELT_COLORS.green;
   const fg=ctx.createRadialGradient(ix+iw/2,iy+ih/2,Math.min(iw,ih)*0.05, ix+iw/2,iy+ih/2,Math.max(iw,ih)*0.8);
@@ -1413,29 +1467,48 @@ function drawTable() {
     });
   }
 
-  // ── Pocket holes — clean black octagon with chamfered corners ───────────────
-  const tcx=T.ix+T.iw/2, tcy=T.iy+T.ih/2;
+  // ── Curved leather pocket lips — drawn AFTER felt for proper layering ────
   for(const p of T.pockets){
     const pR = p.r || pr;
-    const cOff = pR * 0.82;
-    const cLen = pR * 0.40;
+    const ang = Math.atan2(p.y - tcy2, p.x - tcx2); // angle from table centre to pocket
 
-    // Dark surround blending into wood
-    ctx.beginPath();ctx.arc(p.x,p.y,pR+6,0,Math.PI*2);
-    ctx.fillStyle='rgba(0,0,0,0.70)';ctx.fill();
+    // Felt shadow at felt-edge — cloth appears to taper into the hole
+    const feltShadow = ctx.createRadialGradient(p.x,p.y,pR*0.85,p.x,p.y,pR*1.4);
+    feltShadow.addColorStop(0,'rgba(0,0,0,0.55)');
+    feltShadow.addColorStop(1,'rgba(0,0,0,0)');
+    ctx.beginPath();ctx.arc(p.x,p.y,pR*1.4,0,Math.PI*2);
+    ctx.fillStyle=feltShadow;ctx.fill();
 
-    // Clean black octagon hole — no inner designs
-    ctx.beginPath();
-    ctx.moveTo(p.x-cLen/2, p.y-cOff);
-    ctx.lineTo(p.x+cLen/2, p.y-cOff);
-    ctx.lineTo(p.x+cOff,   p.y-cLen/2);
-    ctx.lineTo(p.x+cOff,   p.y+cLen/2);
-    ctx.lineTo(p.x+cLen/2, p.y+cOff);
-    ctx.lineTo(p.x-cLen/2, p.y+cOff);
-    ctx.lineTo(p.x-cOff,   p.y+cLen/2);
-    ctx.lineTo(p.x-cOff,   p.y-cLen/2);
-    ctx.closePath();
+    // Re-draw clean black hole on top of felt
+    ctx.beginPath();ctx.arc(p.x,p.y,pR,0,Math.PI*2);
     ctx.fillStyle='#000';ctx.fill();
+
+    // Curved leather lips — two bezier arcs curling inward on the table-facing side
+    // The lips are on the side facing the table centre (not the wood side)
+    const lipAng1 = ang + Math.PI*0.55;
+    const lipAng2 = ang + Math.PI*1.45;
+    const lx1 = p.x + Math.cos(lipAng1)*pR, ly1 = p.y + Math.sin(lipAng1)*pR;
+    const lx2 = p.x + Math.cos(lipAng2)*pR, ly2 = p.y + Math.sin(lipAng2)*pR;
+    // Control points curve inward toward table centre
+    const cpDist = pR * 0.55;
+    const cpx = p.x + Math.cos(ang+Math.PI)*cpDist*0.5;
+    const cpy = p.y + Math.sin(ang+Math.PI)*cpDist*0.5;
+
+    // Left lip
+    ctx.beginPath();
+    ctx.moveTo(lx1, ly1);
+    ctx.quadraticCurveTo(cpx, cpy, p.x + Math.cos(ang+Math.PI)*pR*0.3, p.y + Math.sin(ang+Math.PI)*pR*0.3);
+    ctx.strokeStyle='rgba(120,75,25,0.85)'; ctx.lineWidth=3; ctx.lineCap='round'; ctx.stroke();
+    // Right lip
+    ctx.beginPath();
+    ctx.moveTo(lx2, ly2);
+    ctx.quadraticCurveTo(cpx, cpy, p.x + Math.cos(ang+Math.PI)*pR*0.3, p.y + Math.sin(ang+Math.PI)*pR*0.3);
+    ctx.strokeStyle='rgba(120,75,25,0.85)'; ctx.lineWidth=3; ctx.lineCap='round'; ctx.stroke();
+
+    // Bright leather highlight on top of lip
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, pR, lipAng1, lipAng2);
+    ctx.strokeStyle='rgba(170,110,40,0.7)'; ctx.lineWidth=2; ctx.stroke();
   }
 
   // ── "LUCKY BALLS" watermark on felt ────────────────────────────────────
