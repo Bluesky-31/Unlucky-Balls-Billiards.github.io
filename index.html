@@ -174,7 +174,7 @@ overflow-y:auto;background:#0e0e0e;width:100%;height:100%;
 }
 #app.desktop-mode .ctrl-row{flex-direction:column;align-items:stretch;gap:12px;}
 #app.desktop-mode #spin-wrap{align-self:center;}
-#app.desktop-mode #spin-canvas{width:70px;height:70px;}
+#app.desktop-mode #spin-canvas{width:90px;height:90px;}
 #app.desktop-mode #power-wrap{flex-direction:column;align-items:stretch;gap:6px;}
 #app.desktop-mode #power-track{height:14px;border-radius:7px;}
 #app.desktop-mode #pslider{writing-mode:vertical-lr;direction:rtl;width:36px;height:140px;align-self:center;accent-color:#ff6b00;cursor:pointer;margin-top:4px;}
@@ -208,7 +208,7 @@ overflow-y:auto;background:#0e0e0e;width:100%;height:100%;
 }
 .ctrl-row{flex-direction:column;align-items:stretch;gap:12px;}
 #spin-wrap{align-self:center;}
-#spin-canvas{width:70px;height:70px;}
+#spin-canvas{width:90px;height:90px;}
 #power-wrap{flex-direction:column;align-items:stretch;gap:6px;}
 #power-track{height:14px;border-radius:7px;}
 #pslider{writing-mode:vertical-lr;direction:rtl;width:36px;height:140px;align-self:center;accent-color:#ff6b00;cursor:pointer;margin-top:4px;}
@@ -411,7 +411,7 @@ border:1px solid rgba(255,80,80,0.35);">
     <div class="ctrl-row">
       <div id="spin-wrap">
         <span class="ctrl-label">SPIN</span>
-        <canvas id="spin-canvas" width="60" height="60"></canvas>
+        <canvas id="spin-canvas" width="90" height="90"></canvas>
       </div>
       <div id="power-wrap">
         <div id="power-row"><span class="ctrl-label">POWER</span><span id="power-pct">60%</span></div>
@@ -587,13 +587,13 @@ function getLevelData(lvl) {
   let n, t;
   if (difficulty === 'easy') {
     n = 3 + capped;
-    t = 70 + capped * 10;
+    t = 100 + capped * 10;
   } else if (difficulty === 'hard') {
     n = 5 + capped;
-    t = 70 + capped * 8;
+    t = 100 + capped * 8;
   } else {
     n = 4 + capped;
-    t = 70 + capped * 9;
+    t = 100 + capped * 9;
   }
   const hasBombs = true;
 
@@ -996,13 +996,26 @@ spinCv.addEventListener('mousedown', e=>{spinDn=true;doSpin(e);});
 spinCv.addEventListener('mousemove', e=>{if(spinDn)doSpin(e);});
 document.addEventListener('mouseup', ()=>{spinDn=false;});
 function doSpin(e) {
-  const r=spinCv.getBoundingClientRect();
+  const rect=spinCv.getBoundingClientRect();
   const s=e.touches?e.touches[0]:e;
-  const cx=30,cy=30,rad=26;
-  let dx=s.clientX-r.left-cx, dy=s.clientY-r.top-cy;
+  const cx=45,cy=45,rad=38;
+  let dx=s.clientX-rect.left-cx, dy=s.clientY-rect.top-cy;
   const d=Math.hypot(dx,dy);
   if(d>rad){dx=dx/d*rad;dy=dy/d*rad;}
-  G.spinX=dx/rad; G.spinY=dy/rad;
+  let nx=dx/rad, ny=dy/rad;
+  const nd=Math.hypot(nx,ny);
+  if(nd < 0.25){ G.spinX=0; G.spinY=0; return; } // dead zone = centre = no spin
+
+  // Snap to 4 cardinal directions only, full intensity always
+  const angle=Math.atan2(ny,nx);
+  const cardinals=[0, Math.PI/2, Math.PI, -Math.PI/2]; // R, B, L, T
+  let closest=cardinals[0], minDiff=Math.PI*2;
+  for(const a of cardinals){
+    let diff=Math.abs(angle-a); if(diff>Math.PI) diff=Math.PI*2-diff;
+    if(diff<minDiff){minDiff=diff;closest=a;}
+  }
+  G.spinX = Math.cos(closest); // always full intensity (1.0)
+  G.spinY = Math.sin(closest);
 }
 
 // ── Power slider — stopPropagation so it never triggers aim ───────────────
@@ -1044,12 +1057,18 @@ function shoot() {
   // Desktop: ±40% of default(72) across slider range
   // Mobile:  ±40% of default(72) across slider range
   // Both use linear formula: spd = a + power*b
-  // Same physics for mobile and desktop
-  const spd = 25.4388 + G.power*(-0.7220) + G.power*G.power*0.0082; // quadratic: min=9.5, default=15.84, max=35
-  G.cue.vx=Math.cos(G.aimAngle)*spd + G.spinX*1.4;
-  G.cue.vy=Math.sin(G.aimAngle)*spd + G.spinY*1.4;
+  // Mobile: gentler min (3.17), same default (15.84), 90% max (31.5)
+  // Desktop: min=9.5, default=15.84, max=35
+  const spd = settings.mobile
+    ? -23.4276 + G.power*0.6974 + G.power*G.power*-0.002111
+    : 25.4388  + G.power*(-0.7220) + G.power*G.power*0.0082;
+  G.cue.vx=Math.cos(G.aimAngle)*spd;
+  G.cue.vy=Math.sin(G.aimAngle)*spd;
+  // Store spin on cue ball for physics — spinY<0=topspin, spinY>0=backspin
+  G.cue.spinX = G.spinX; // sidespin
+  G.cue.spinY = G.spinY; // top/backspin
+  G.cue._distTravelled = 0; // reset distance for spin delay
   G.phase='rolling'; G.combo=0;
-  // Reset spin to centre after each shot
   G.spinX=0; G.spinY=0;
 }
 
@@ -1080,10 +1099,44 @@ function castRay(ox,oy,dx,dy,r) {
 function moveBall(ball,isCue) {
   ball.x+=ball.vx; ball.y+=ball.vy;
   ball.vx*=FRICTION; ball.vy*=FRICTION;
-  if(ball.x-ball.r<T.left)  {ball.x=T.left+ball.r;  ball.vx= Math.abs(ball.vx)*0.8;}
-  if(ball.x+ball.r>T.right) {ball.x=T.right-ball.r; ball.vx=-Math.abs(ball.vx)*0.8;}
-  if(ball.y-ball.r<T.top)   {ball.y=T.top+ball.r;   ball.vy= Math.abs(ball.vy)*0.8;}
-  if(ball.y+ball.r>T.bottom){ball.y=T.bottom-ball.r; ball.vy=-Math.abs(ball.vy)*0.8;}
+  // Spin physics for cue ball — activates after 50% of table short side travelled
+  if(isCue && (ball.spinX||ball.spinY)){
+    const spd=Math.hypot(ball.vx,ball.vy);
+    if(!ball._distTravelled) ball._distTravelled=0;
+    ball._distTravelled += spd;
+    const spinThreshold = Math.min(T.iw,T.ih) * 0.5; // 50% of short side
+    if(spd > MIN_SPD*2 && ball._distTravelled >= spinThreshold){
+      const spinDecay = 0.996;
+      const topInfluence  = -ball.spinY * 0.013 * spd;
+      const sideInfluence =  ball.spinX * 0.011 * spd;
+      if(spd>0){
+        ball.vx += (ball.vx/spd)*topInfluence + (ball.vy/spd)*sideInfluence;
+        ball.vy += (ball.vy/spd)*topInfluence - (ball.vx/spd)*sideInfluence;
+      }
+      ball.spinX *= spinDecay; ball.spinY *= spinDecay;
+    }
+  }
+  // Wall bounces with sidespin effect
+  if(ball.x-ball.r<T.left){
+    ball.x=T.left+ball.r;
+    ball.vx=Math.abs(ball.vx)*0.8;
+    if(isCue&&ball.spinX) ball.vy+=ball.spinX*Math.abs(ball.vx)*0.29;
+  }
+  if(ball.x+ball.r>T.right){
+    ball.x=T.right-ball.r;
+    ball.vx=-Math.abs(ball.vx)*0.8;
+    if(isCue&&ball.spinX) ball.vy+=ball.spinX*Math.abs(ball.vx)*0.29;
+  }
+  if(ball.y-ball.r<T.top){
+    ball.y=T.top+ball.r;
+    ball.vy=Math.abs(ball.vy)*0.8;
+    if(isCue&&ball.spinX) ball.vx+=ball.spinX*Math.abs(ball.vy)*0.29;
+  }
+  if(ball.y+ball.r>T.bottom){
+    ball.y=T.bottom-ball.r;
+    ball.vy=-Math.abs(ball.vy)*0.8;
+    if(isCue&&ball.spinX) ball.vx+=ball.spinX*Math.abs(ball.vy)*0.29;
+  }
   for(const p of T.pockets){
     const pR = p.r || T.pr; // per-pocket radius
     const dist = Math.hypot(ball.x-p.x,ball.y-p.y);
@@ -1125,7 +1178,22 @@ function resolveBB(a,b) {
   a.x-=nx*ov*0.5; a.y-=ny*ov*0.5;
   b.x+=nx*ov*0.5; b.y+=ny*ov*0.5;
   const dvn=(a.vx-b.vx)*nx+(a.vy-b.vy)*ny;
-  if(dvn>0){a.vx-=dvn*nx;a.vy-=dvn*ny;b.vx+=dvn*nx;b.vy+=dvn*ny;}
+  if(dvn>0){
+    a.vx-=dvn*nx;a.vy-=dvn*ny;
+    b.vx+=dvn*nx;b.vy+=dvn*ny;
+    // Apply cue ball spin effect after contact
+    // Backspin (spinY>0): reduce cue follow, can draw back
+    // Topspin (spinY<0): cue follows target ball
+    if(a.spinX!==undefined&&(a.spinX||a.spinY)){
+      const spinStr = Math.hypot(a.spinX,a.spinY);
+      // Backspin: push cue backward along normal (strong draw)
+      a.vx += nx * a.spinY * dvn * 0.32;
+      a.vy += ny * a.spinY * dvn * 0.32;
+      // Sidespin: deflect cue perpendicular (strong angle)
+      a.vx += (-ny) * a.spinX * dvn * 0.22;
+      a.vy += nx    * a.spinX * dvn * 0.22;
+    }
+  }
 }
 
 function checkDangerBombs() {
@@ -1981,6 +2049,40 @@ function drawBalls() {
     if(cs>0.05) G.cue._rollDir=Math.atan2(vy||0,vx||0);
     G.cue._roll += cs*0.05;
     draw3DBall(x, y, r, '#d8d8d8', null, G.cue._roll, G.cue._rollDir, 0, '#fff', now, 0);
+
+    // Spin indicator arc on cue ball (during aiming only)
+    const sx = G.spinX || (G.cue.spinX||0);
+    const sy = G.spinY || (G.cue.spinY||0);
+    if(G.phase==='aiming' && (Math.abs(sx)>0.1 || Math.abs(sy)>0.1)){
+      ctx.save();
+      ctx.lineWidth=3; ctx.lineCap='round';
+      // Color: red=backspin, blue=topspin, yellow=sidespin
+      let spinColor, spinAngle, arcSpan=Math.PI*0.7;
+      if(Math.abs(sy) >= Math.abs(sx)){
+        spinColor = sy > 0 ? '#ff3333' : '#3399ff'; // red=backspin, blue=topspin
+        spinAngle = sy > 0 ? Math.PI*0.5 : -Math.PI*0.5; // bottom arc / top arc
+      } else {
+        spinColor = '#ffcc00'; // yellow=sidespin
+        spinAngle = sx > 0 ? 0 : Math.PI; // right/left
+      }
+      ctx.strokeStyle = spinColor;
+      ctx.shadowBlur=6; ctx.shadowColor=spinColor;
+      ctx.globalAlpha=0.85;
+      ctx.beginPath();
+      ctx.arc(x, y, r+4, spinAngle-arcSpan/2, spinAngle+arcSpan/2);
+      ctx.stroke();
+      // Arrow tip at end of arc
+      const tipX = x + Math.cos(spinAngle+arcSpan/2)*(r+4);
+      const tipY = y + Math.sin(spinAngle+arcSpan/2)*(r+4);
+      const tipAng = spinAngle+arcSpan/2+Math.PI/2;
+      ctx.beginPath();
+      ctx.moveTo(tipX, tipY);
+      ctx.lineTo(tipX-6*Math.cos(tipAng-0.4), tipY-6*Math.sin(tipAng-0.4));
+      ctx.moveTo(tipX, tipY);
+      ctx.lineTo(tipX-6*Math.cos(tipAng+0.4), tipY-6*Math.sin(tipAng+0.4));
+      ctx.stroke();
+      ctx.restore();
+    }
   }
 }
 
@@ -1992,19 +2094,53 @@ function drawParticles() {
 }
 
 function drawSpinPad() {
-  const c=sCtx,cx=30,cy=30,r=26;
-  c.clearRect(0,0,60,60);
-  const g=c.createRadialGradient(cx-5,cy-5,2,cx,cy,r);
-  g.addColorStop(0,'#eee');g.addColorStop(1,'#888');
-  c.beginPath();c.arc(cx,cy,r,0,Math.PI*2);c.fillStyle=g;c.fill();
-  c.strokeStyle='#444';c.lineWidth=1;c.stroke();
-  c.strokeStyle='rgba(0,0,0,.15)';c.lineWidth=1;
-  c.beginPath();c.moveTo(cx-r,cy);c.lineTo(cx+r,cy);c.stroke();
-  c.beginPath();c.moveTo(cx,cy-r);c.lineTo(cx,cy+r);c.stroke();
-  const sx=cx+G.spinX*r,sy=cy+G.spinY*r;
-  c.beginPath();c.arc(sx,sy,5,0,Math.PI*2);
-  c.fillStyle='rgba(255,107,0,.9)';c.fill();
+  const c=sCtx, cx=45, cy=45, r=38, sz=90;
+  c.clearRect(0,0,sz,sz);
+
+  // Background sphere
+  const bg=c.createRadialGradient(cx-8,cy-8,3,cx,cy,r);
+  bg.addColorStop(0,'#d0d0d0');bg.addColorStop(0.6,'#909090');bg.addColorStop(1,'#505050');
+  c.beginPath();c.arc(cx,cy,r,0,Math.PI*2);c.fillStyle=bg;c.fill();
+  c.strokeStyle='#333';c.lineWidth=1.5;c.stroke();
+
+  // 4 cardinal lines (cross)
+  c.strokeStyle='rgba(0,0,0,0.35)';c.lineWidth=1.2;
+  const cardinals=[0, Math.PI/2, Math.PI, -Math.PI/2];
+  for(const a of cardinals){
+    c.beginPath();
+    c.moveTo(cx+Math.cos(a)*5, cy+Math.sin(a)*5);
+    c.lineTo(cx+Math.cos(a)*r*0.92, cy+Math.sin(a)*r*0.92);
+    c.stroke();
+  }
+
+  // 4 snap point dots at full intensity
+  for(const a of cardinals){
+    const px=cx+Math.cos(a)*r*0.85, py=cy+Math.sin(a)*r*0.85;
+    c.beginPath();c.arc(px,py,4,0,Math.PI*2);
+    c.fillStyle='rgba(255,255,255,0.85)';c.fill();
+    c.strokeStyle='rgba(0,0,0,0.3)';c.lineWidth=1;c.stroke();
+  }
+
+  // Labels
+  c.font='bold 9px sans-serif';c.textAlign='center';c.textBaseline='middle';
+  c.fillStyle='rgba(0,0,0,0.6)';
+  c.fillText('T', cx, cy-r+10);
+  c.fillText('B', cx, cy+r-10);
+  c.fillText('L', cx-r+10, cy);
+  c.fillText('R', cx+r-10, cy);
+
+  // Indicator: centre if no spin, or at the active cardinal
+  const sx=cx+G.spinX*r*0.85, sy=cy+G.spinY*r*0.85;
+  // Glow
+  c.beginPath();c.arc(sx,sy,11,0,Math.PI*2);
+  c.fillStyle='rgba(255,107,0,0.25)';c.fill();
+  // Dot
+  c.beginPath();c.arc(sx,sy,7,0,Math.PI*2);
+  c.fillStyle='#ff6b00';c.fill();
   c.strokeStyle='#000';c.lineWidth=1.5;c.stroke();
+  // Centre dot
+  c.beginPath();c.arc(cx,cy,3.5,0,Math.PI*2);
+  c.fillStyle='rgba(0,0,0,0.35)';c.fill();
 }
 
 function refreshStrip() {
