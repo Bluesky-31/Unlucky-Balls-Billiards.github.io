@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -16,7 +17,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:#0d0d0d;font-family:
 /* ── SETTINGS SCREEN ── */
 #settings{position:fixed;inset:0;background:#0d0d0d;display:flex;flex-direction:column;align-items:center;z-index:150;padding:28px 20px 24px;overflow-y:auto;}
 #settings.hidden{display:none;}
-#settings-title{font-family:'Black Ops One',Impact,'Arial Black',fantasy,cursive;font-size:1.6rem;letter-spacing:4px;color:#ff6b00;margin-bottom:24px;}
+#settings-title{font-family:‘Black Ops One’,Impact,‘Arial Black’,fantasy,cursive;font-size:1.6rem;letter-spacing:4px;color:#ff6b00;margin-bottom:24px;}
 .set-section{width:100%;max-width:340px;margin-bottom:22px;}
 .set-section-label{font-size:.55rem;letter-spacing:3px;color:#aaa;text-transform:uppercase;margin-bottom:10px;border-bottom:1px solid #1a1a1a;padding-bottom:4px;}
 .set-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;}
@@ -25,24 +26,24 @@ html,body{width:100%;height:100%;overflow:hidden;background:#0d0d0d;font-family:
 .toggle{position:relative;width:60px;height:32px;flex-shrink:0;}
 .toggle input{opacity:0;width:0;height:0;position:absolute;}
 .toggle-track{
-  position:absolute;inset:0;
-  background:#555;
-  border-radius:16px;
-  transition:background .25s, border-color .25s;
-  cursor:pointer;
-  border:2px solid #888;
-  box-shadow:inset 0 1px 4px rgba(0,0,0,0.5);
+position:absolute;inset:0;
+background:#555;
+border-radius:16px;
+transition:background .25s, border-color .25s;
+cursor:pointer;
+border:2px solid #888;
+box-shadow:inset 0 1px 4px rgba(0,0,0,0.5);
 }
 .toggle input:checked+.toggle-track{background:#ff6b00 !important;border-color:#ff6b00 !important;}
 .toggle-track::after{
-  content:'';
-  position:absolute;
-  width:24px;height:24px;
-  background:#fff;
-  border-radius:50%;
-  top:2px;left:2px;
-  transition:transform .25s;
-  box-shadow:0 2px 5px rgba(0,0,0,0.4);
+content:’’;
+position:absolute;
+width:24px;height:24px;
+background:#fff;
+border-radius:50%;
+top:2px;left:2px;
+transition:transform .25s;
+box-shadow:0 2px 5px rgba(0,0,0,0.4);
 }
 .toggle input:checked+.toggle-track::after{transform:translateX(28px);}
 /* Colour swatches */
@@ -53,30 +54,30 @@ html,body{width:100%;height:100%;overflow:hidden;background:#0d0d0d;font-family:
 .cue-swatch{width:34px;height:14px;border-radius:4px;border:2px solid transparent;cursor:pointer;}
 .cue-swatch.active{border-color:#fff;}
 /* Buttons */
-#settings-done{font-family:'Black Ops One',Impact,'Arial Black',fantasy,cursive;font-size:1rem;letter-spacing:3px;padding:14px 40px;background:#ff6b00;border:none;border-radius:8px;color:#000;cursor:pointer;margin-top:4px;}
+#settings-done{font-family:‘Black Ops One’,Impact,‘Arial Black’,fantasy,cursive;font-size:1rem;letter-spacing:3px;padding:14px 40px;background:#ff6b00;border:none;border-radius:8px;color:#000;cursor:pointer;margin-top:4px;}
 
 /* ── HOME SCREEN ── */
 #home{position:fixed;inset:0;background:#0d0d0d;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0;z-index:100;padding:20px;}
 #home.hidden{display:none;}
-#home-title{font-family:'Black Ops One',Impact,'Arial Black',fantasy,cursive;font-size:2.4rem;letter-spacing:5px;color:#ff6b00;text-shadow:0 0 24px rgba(255,107,0,.6);text-align:center;line-height:1.1;margin-bottom:6px;}
+#home-title{font-family:‘Black Ops One’,Impact,‘Arial Black’,fantasy,cursive;font-size:2.4rem;letter-spacing:5px;color:#ff6b00;text-shadow:0 0 24px rgba(255,107,0,.6);text-align:center;line-height:1.1;margin-bottom:6px;}
 #home-sub{font-size:.7rem;letter-spacing:3px;color:#bbb;text-transform:uppercase;margin-bottom:32px;}
 .diff-label{font-size:.6rem;letter-spacing:3px;color:#ccc;text-transform:uppercase;margin-bottom:10px;text-align:center;}
 .diff-btns{display:flex;gap:10px;margin-bottom:32px;}
-.diff-btn{font-family:'Black Ops One',Impact,'Arial Black',fantasy,cursive;font-size:.85rem;letter-spacing:2px;padding:12px 22px;border:2px solid #555;border-radius:6px;background:transparent;color:#bbb;cursor:pointer;transition:all .15s;}
+.diff-btn{font-family:‘Black Ops One’,Impact,‘Arial Black’,fantasy,cursive;font-size:.85rem;letter-spacing:2px;padding:12px 22px;border:2px solid #555;border-radius:6px;background:transparent;color:#bbb;cursor:pointer;transition:all .15s;}
 .diff-btn.active{border-color:#ff6b00;color:#ff6b00;background:rgba(255,107,0,.1);}
 #home-desc{font-size:.68rem;color:#bbb;letter-spacing:1px;text-align:center;margin-bottom:28px;line-height:1.7;min-height:40px;}
-#home-start{font-family:'Black Ops One',Impact,'Arial Black',fantasy,cursive;font-size:1.2rem;letter-spacing:4px;padding:16px 48px;background:#ff6b00;border:none;border-radius:8px;color:#000;cursor:pointer;}
+#home-start{font-family:‘Black Ops One’,Impact,‘Arial Black’,fantasy,cursive;font-size:1.2rem;letter-spacing:4px;padding:16px 48px;background:#ff6b00;border:none;border-radius:8px;color:#000;cursor:pointer;}
 #home-start:active{background:#cc5500;}
 
 /* ── APP SHELL ── */
 #app{position:fixed;top:0;left:0;right:0;bottom:0;display:flex;flex-direction:column;overflow:hidden;background:#0d0d0d;}
 #topbar{display:flex;align-items:center;justify-content:space-between;padding:6px 12px;background:#111;border-bottom:1px solid #222;flex-shrink:0;}
-#topbar h1{font-family:'Black Ops One',Impact,'Arial Black',fantasy,cursive;font-size:.9rem;letter-spacing:3px;color:#ff6b00;text-shadow:0 0 10px rgba(255,107,0,.5);}
+#topbar h1{font-family:‘Black Ops One’,Impact,‘Arial Black’,fantasy,cursive;font-size:.9rem;letter-spacing:3px;color:#ff6b00;text-shadow:0 0 10px rgba(255,107,0,.5);}
 .stats{display:flex;gap:12px;align-items:center;}
 .stat{display:flex;flex-direction:column;align-items:center;}
 .stat-label{font-size:.45rem;letter-spacing:2px;color:#aaa;text-transform:uppercase;}
 .stat-value{font-size:.85rem;color:#f0e8d8;}
-#btn-home{font-family:'Share Tech Mono','Courier New','Lucida Console',monospace;font-size:.6rem;letter-spacing:1px;padding:4px 8px;background:transparent;border:1px solid #666;border-radius:3px;color:#ccc;cursor:pointer;}
+#btn-home{font-family:‘Share Tech Mono’,‘Courier New’,‘Lucida Console’,monospace;font-size:.6rem;letter-spacing:1px;padding:4px 8px;background:transparent;border:1px solid #666;border-radius:3px;color:#ccc;cursor:pointer;}
 #btn-home:active{border-color:#ff6b00;color:#ff6b00;}
 
 /* ── CANVAS ── */
@@ -95,22 +96,22 @@ html,body{width:100%;height:100%;overflow:hidden;background:#0d0d0d;font-family:
 #power-track{width:100%;height:20px;background:#1a1a1a;border:1px solid #333;border-radius:10px;overflow:hidden;cursor:pointer;}
 #power-fill{height:100%;width:50%;background:linear-gradient(90deg,#00ff88,#ff9900,#ff2a2a);pointer-events:none;transition:width 0.05s linear;}
 #pslider{width:100%;margin-top:3px;accent-color:#ff6b00;writing-mode:horizontal-tb;direction:ltr;}
-#fire-btn{background:#ff6b00;border:none;border-radius:6px;color:#000;font-family:'Black Ops One',Impact,'Arial Black',fantasy,cursive;font-size:.95rem;letter-spacing:2px;padding:0 16px;height:52px;cursor:pointer;flex-shrink:0;white-space:nowrap;}
+#fire-btn{background:#ff6b00;border:none;border-radius:6px;color:#000;font-family:‘Black Ops One’,Impact,‘Arial Black’,fantasy,cursive;font-size:.95rem;letter-spacing:2px;padding:0 16px;height:52px;cursor:pointer;flex-shrink:0;white-space:nowrap;}
 #fire-btn:active{background:#cc5500;}
 
 #bomb-strip{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;padding-bottom:2px;}
 #bomb-strip::-webkit-scrollbar{display:none;}
 .bomb-chip{display:flex;align-items:center;gap:4px;background:#222;border-radius:20px;padding:3px 8px;flex-shrink:0;font-size:.65rem;color:#ddd;}
 .bomb-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
-.t-safe{color:var(--safe);}.t-warn{color:var(--warn);}.t-danger{color:var(--danger);animation:blink .4s infinite;}
+.t-safe{color:var(–safe);}.t-warn{color:var(–warn);}.t-danger{color:var(–danger);animation:blink .4s infinite;}
 @keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
 
 /* ── RANKINGS SCREEN ── */
 #rankings{position:fixed;inset:0;background:#0d0d0d;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;padding:32px 20px 24px;z-index:200;overflow-y:auto;}
 #rankings.hidden{display:none;}
-#rankings-title{font-family:'Black Ops One',Impact,'Arial Black',fantasy,cursive;font-size:2rem;letter-spacing:5px;color:#ff6b00;text-shadow:0 0 20px rgba(255,107,0,.5);margin-bottom:4px;}
+#rankings-title{font-family:‘Black Ops One’,Impact,‘Arial Black’,fantasy,cursive;font-size:2rem;letter-spacing:5px;color:#ff6b00;text-shadow:0 0 20px rgba(255,107,0,.5);margin-bottom:4px;}
 #rankings-sub{font-size:.65rem;letter-spacing:3px;color:#bbb;text-transform:uppercase;margin-bottom:24px;}
-#rankings-final{font-family:'Black Ops One',Impact,'Arial Black',fantasy,cursive;font-size:1.4rem;color:#e8e0cc;margin-bottom:6px;}
+#rankings-final{font-family:‘Black Ops One’,Impact,‘Arial Black’,fantasy,cursive;font-size:1.4rem;color:#e8e0cc;margin-bottom:6px;}
 #rankings-diff{font-size:.65rem;letter-spacing:2px;color:#ccc;margin-bottom:28px;}
 #rankings-table{width:100%;max-width:340px;border-collapse:collapse;margin-bottom:28px;}
 #rankings-table th{font-size:.55rem;letter-spacing:3px;color:#bbb;text-transform:uppercase;padding:4px 8px;text-align:left;border-bottom:1px solid #1a1a1a;}
@@ -119,7 +120,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:#0d0d0d;font-family:
 #rankings-table tr.you td:first-child{color:#ff6b00;}
 .rank-medal{font-size:1rem;}
 #rankings-btns{display:flex;gap:12px;}
-.rank-btn{font-family:'Black Ops One',Impact,'Arial Black',fantasy,cursive;font-size:.9rem;letter-spacing:2px;padding:12px 28px;border:none;border-radius:6px;cursor:pointer;}
+.rank-btn{font-family:‘Black Ops One’,Impact,‘Arial Black’,fantasy,cursive;font-size:.9rem;letter-spacing:2px;padding:12px 28px;border:none;border-radius:6px;cursor:pointer;}
 #rank-play-again{background:#ff6b00;color:#000;}
 #rank-menu{background:transparent;border:1px solid #666;color:#ccc;}
 #rank-menu:active{border-color:#ff6b00;color:#ff6b00;}
@@ -127,49 +128,49 @@ html,body{width:100%;height:100%;overflow:hidden;background:#0d0d0d;font-family:
 /* ── OVERLAY (win/lose) ── */
 #overlay{position:absolute;inset:0;background:rgba(0,0,0,.88);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;z-index:20;}
 #overlay.hidden{display:none;}
-#ov-title{font-family:'Black Ops One',Impact,'Arial Black',fantasy,cursive;font-size:1.8rem;letter-spacing:4px;text-align:center;}
+#ov-title{font-family:‘Black Ops One’,Impact,‘Arial Black’,fantasy,cursive;font-size:1.8rem;letter-spacing:4px;text-align:center;}
 #ov-sub{font-size:.78rem;letter-spacing:1px;color:#ddd;text-align:center;padding:0 20px;line-height:1.6;}
 .ov-btns{display:flex;gap:10px;}
-.ov-btn{background:#ff6b00;border:none;border-radius:6px;color:#000;font-family:'Black Ops One',Impact,'Arial Black',fantasy,cursive;font-size:.9rem;letter-spacing:2px;padding:12px 22px;cursor:pointer;}
+.ov-btn{background:#ff6b00;border:none;border-radius:6px;color:#000;font-family:‘Black Ops One’,Impact,‘Arial Black’,fantasy,cursive;font-size:.9rem;letter-spacing:2px;padding:12px 22px;cursor:pointer;}
 .ov-btn.secondary{background:transparent;border:1px solid #888;color:#ddd;}
 .ov-btn.secondary:active{border-color:#ff6b00;color:#ff6b00;}
-#combo-pop{position:absolute;pointer-events:none;font-family:'Black Ops One',Impact,'Arial Black',fantasy,cursive;font-size:1.1rem;color:#ff6b00;text-shadow:0 0 8px #ff6b00;opacity:0;z-index:10;transition:opacity .6s,transform .6s;}
+#combo-pop{position:absolute;pointer-events:none;font-family:‘Black Ops One’,Impact,‘Arial Black’,fantasy,cursive;font-size:1.1rem;color:#ff6b00;text-shadow:0 0 8px #ff6b00;opacity:0;z-index:10;transition:opacity .6s,transform .6s;}
 
 /* ── PORTRAIT on mobile ── */
 @media(max-width:600px) and (orientation:portrait){
-  #app{flex-direction:column;}
-  #pslider{writing-mode:horizontal-tb;direction:ltr;width:100%;height:auto;display:block;}
+#app{flex-direction:column;}
+#pslider{writing-mode:horizontal-tb;direction:ltr;width:100%;height:auto;display:block;}
 }
 
 /* ── LANDSCAPE on mobile ── */
 @media(max-width:900px) and (orientation:landscape){
-  #app{flex-direction:row;flex-wrap:wrap;}
-  #topbar{width:100%;order:0;padding:4px 12px;}
-  #topbar h1{font-size:.8rem;}
-  .stat-value{font-size:.75rem;}
-  #canvas-wrap{order:1;flex:1;}
-  #controls{order:2;width:148px;flex-shrink:0;border-top:none;border-left:1px solid #222;overflow-y:auto;padding:8px;display:flex;flex-direction:column;justify-content:flex-start;}
-  #bomb-strip{flex-direction:column;overflow-x:Never;}
-  #fire-btn{width:100%;height:44px;font-size:.85rem;}
-  #pslider{display:none;}
+#app{flex-direction:row;flex-wrap:wrap;}
+#topbar{width:100%;order:0;padding:4px 12px;}
+#topbar h1{font-size:.8rem;}
+.stat-value{font-size:.75rem;}
+#canvas-wrap{order:1;flex:1;}
+#controls{order:2;width:148px;flex-shrink:0;border-top:none;border-left:1px solid #222;overflow-y:auto;padding:8px;display:flex;flex-direction:column;justify-content:flex-start;}
+#bomb-strip{flex-direction:column;overflow-x:Never;}
+#fire-btn{width:100%;height:44px;font-size:.85rem;}
+#pslider{display:none;}
 }
 
 /* ── DESKTOP — applied via JS class .desktop-mode on #app ── */
 #app.desktop-mode{
-  position:fixed !important;
-  top:0 !important; left:0 !important; right:0 !important; bottom:0 !important;
-  display:grid !important;
-  grid-template-columns:1fr 190px !important;
-  grid-template-rows:auto 1fr !important;
-  grid-template-areas:"topbar topbar" "canvas sidebar" !important;
-  overflow:hidden !important;
+position:fixed !important;
+top:0 !important; left:0 !important; right:0 !important; bottom:0 !important;
+display:grid !important;
+grid-template-columns:1fr 190px !important;
+grid-template-rows:auto 1fr !important;
+grid-template-areas:“topbar topbar” “canvas sidebar” !important;
+overflow:hidden !important;
 }
 #app.desktop-mode #topbar{grid-area:topbar;padding:6px 16px;}
 #app.desktop-mode #canvas-wrap{grid-area:canvas;position:relative;overflow:hidden;background:#0d0d0d;width:100%;height:100%;}
 #app.desktop-mode #controls{
-  grid-area:sidebar;display:flex;flex-direction:column;gap:14px;
-  padding:14px 12px;border-top:none;border-left:1px solid #333;
-  overflow-y:auto;background:#0e0e0e;width:100%;height:100%;
+grid-area:sidebar;display:flex;flex-direction:column;gap:14px;
+padding:14px 12px;border-top:none;border-left:1px solid #333;
+overflow-y:auto;background:#0e0e0e;width:100%;height:100%;
 }
 #app.desktop-mode .ctrl-row{flex-direction:column;align-items:stretch;gap:12px;}
 #app.desktop-mode #spin-wrap{align-self:center;}
@@ -189,62 +190,64 @@ html,body{width:100%;height:100%;overflow:hidden;background:#0d0d0d;font-family:
 
 /* Also apply via media query as backup */
 @media(min-width:900px){
-  #app{
-    position:fixed !important;
-    top:0 !important; left:0 !important; right:0 !important; bottom:0 !important;
-    display:grid !important;
-    grid-template-columns:1fr 190px !important;
-    grid-template-rows:auto 1fr !important;
-    grid-template-areas:"topbar topbar" "canvas sidebar" !important;
-    overflow:hidden !important;
-  }
-  #topbar{grid-area:topbar;padding:6px 16px;}
-  #canvas-wrap{grid-area:canvas;position:relative;overflow:hidden;background:#0d0d0d;width:100%;height:100%;}
-  #controls{
-    grid-area:sidebar;display:flex;flex-direction:column;gap:14px;
-    padding:14px 12px;border-top:none;border-left:1px solid #333;
-    overflow-y:auto;background:#0e0e0e;width:100%;height:100%;
-  }
-  .ctrl-row{flex-direction:column;align-items:stretch;gap:12px;}
-  #spin-wrap{align-self:center;}
-  #spin-canvas{width:70px;height:70px;}
-  #power-wrap{flex-direction:column;align-items:stretch;gap:6px;}
-  #power-track{height:14px;border-radius:7px;}
-  #pslider{writing-mode:vertical-lr;direction:rtl;width:36px;height:140px;align-self:center;accent-color:#ff6b00;cursor:pointer;margin-top:4px;}
-  #fire-btn{width:100%;height:48px;font-size:1rem;}
-  #bomb-strip{flex-direction:column;overflow-x:visible;overflow-y:auto;gap:6px;}
-  .ctrl-label{font-size:.6rem;}
-  #power-pct{font-size:.8rem;}
-  .bomb-chip{font-size:.72rem;}
-  #topbar h1{font-size:1.1rem;}
-  .stat-label{font-size:.5rem;}
-  .stat-value{font-size:.95rem;}
-  #btn-home{font-size:.7rem;padding:5px 12px;}
-  #home-title{font-size:3rem;}
-  #home-sub{font-size:.8rem;}
-  .diff-btn{font-size:1rem;padding:14px 28px;}
-  #home-desc{font-size:.78rem;}
-  #home-start{font-size:1.4rem;padding:18px 56px;}
-  #settings-title{font-size:2rem;}
-  .set-section-label{font-size:.65rem;}
-  .set-row-label{font-size:.9rem;}
-  .swatch{width:42px;height:42px;}
-  .cue-swatch{width:52px;height:18px;}
-  #settings-done{font-size:1.1rem;padding:16px 48px;}
-  #rankings-title{font-size:2.4rem;}
-  #rankings-final{font-size:1.8rem;}
-  #rankings-table td{font-size:.9rem;}
-  #rankings-table th{font-size:.65rem;}
-  .rank-btn{font-size:1rem;padding:14px 36px;}
-  #ov-title{font-size:2.2rem;}
-  #ov-sub{font-size:.9rem;}
-  .ov-btn{font-size:1rem;padding:14px 28px;}
+#app{
+position:fixed !important;
+top:0 !important; left:0 !important; right:0 !important; bottom:0 !important;
+display:grid !important;
+grid-template-columns:1fr 190px !important;
+grid-template-rows:auto 1fr !important;
+grid-template-areas:“topbar topbar” “canvas sidebar” !important;
+overflow:hidden !important;
+}
+#topbar{grid-area:topbar;padding:6px 16px;}
+#canvas-wrap{grid-area:canvas;position:relative;overflow:hidden;background:#0d0d0d;width:100%;height:100%;}
+#controls{
+grid-area:sidebar;display:flex;flex-direction:column;gap:14px;
+padding:14px 12px;border-top:none;border-left:1px solid #333;
+overflow-y:auto;background:#0e0e0e;width:100%;height:100%;
+}
+.ctrl-row{flex-direction:column;align-items:stretch;gap:12px;}
+#spin-wrap{align-self:center;}
+#spin-canvas{width:70px;height:70px;}
+#power-wrap{flex-direction:column;align-items:stretch;gap:6px;}
+#power-track{height:14px;border-radius:7px;}
+#pslider{writing-mode:vertical-lr;direction:rtl;width:36px;height:140px;align-self:center;accent-color:#ff6b00;cursor:pointer;margin-top:4px;}
+#fire-btn{width:100%;height:48px;font-size:1rem;}
+#bomb-strip{flex-direction:column;overflow-x:visible;overflow-y:auto;gap:6px;}
+.ctrl-label{font-size:.6rem;}
+#power-pct{font-size:.8rem;}
+.bomb-chip{font-size:.72rem;}
+#topbar h1{font-size:1.1rem;}
+.stat-label{font-size:.5rem;}
+.stat-value{font-size:.95rem;}
+#btn-home{font-size:.7rem;padding:5px 12px;}
+#home-title{font-size:3rem;}
+#home-sub{font-size:.8rem;}
+.diff-btn{font-size:1rem;padding:14px 28px;}
+#home-desc{font-size:.78rem;}
+#home-start{font-size:1.4rem;padding:18px 56px;}
+#settings-title{font-size:2rem;}
+.set-section-label{font-size:.65rem;}
+.set-row-label{font-size:.9rem;}
+.swatch{width:42px;height:42px;}
+.cue-swatch{width:52px;height:18px;}
+#settings-done{font-size:1.1rem;padding:16px 48px;}
+#rankings-title{font-size:2.4rem;}
+#rankings-final{font-size:1.8rem;}
+#rankings-table td{font-size:.9rem;}
+#rankings-table th{font-size:.65rem;}
+.rank-btn{font-size:1rem;padding:14px 36px;}
+#ov-title{font-size:2.2rem;}
+#ov-sub{font-size:.9rem;}
+.ov-btn{font-size:1rem;padding:14px 28px;}
 }
 </style>
+
 </head>
 <body>
 
 <!-- HOME SCREEN -->
+
 <div id="home">
   <div id="home-title">LUCKY BALLS<br>BILLIARDS</div>
   <div id="home-sub">💣 &nbsp; pocket balls, dodge the bombs</div>
@@ -267,18 +270,20 @@ html,body{width:100%;height:100%;overflow:hidden;background:#0d0d0d;font-family:
     <span id="mobile-label" style="font-family:'Black Ops One',Impact,'Arial Black',fantasy,cursive;font-size:.8rem;color:#ff6b00;letter-spacing:2px;cursor:pointer;" onclick="document.getElementById('home-mobile').click()">📱 MOBILE MODE</span>
   </div>
 
-  <a href="https://github.com/sponsors/Bluesky-31" target="_blank" rel="noopener"
-     style="display:flex;align-items:center;justify-content:center;gap:8px;margin-top:16px;
-            padding:11px 22px;border-radius:10px;text-decoration:none;
-            background:linear-gradient(135deg,rgba(255,60,80,0.15),rgba(255,100,0,0.12));
-            border:1px solid rgba(255,80,80,0.35);">
-    <span style="font-size:1.2rem;">❤️</span>
-    <span style="font-family:'Black Ops One',Impact,fantasy,cursive;font-size:.78rem;letter-spacing:2px;color:#ff8888;">SUPPORT THIS GAME</span>
-    <span style="font-size:.65rem;color:#aaa;letter-spacing:1px;">— every bit helps!</span>
-  </a>
+<a href="https://github.com/sponsors/Bluesky-31" target="_blank" rel="noopener"
+style="display:flex;align-items:center;justify-content:center;gap:8px;margin-top:16px;
+padding:11px 22px;border-radius:10px;text-decoration:none;
+background:linear-gradient(135deg,rgba(255,60,80,0.15),rgba(255,100,0,0.12));
+border:1px solid rgba(255,80,80,0.35);">
+<span style="font-size:1.2rem;">❤️</span>
+<span style="font-family:'Black Ops One',Impact,fantasy,cursive;font-size:.78rem;letter-spacing:2px;color:#ff8888;">SUPPORT THIS GAME</span>
+<span style="font-size:.65rem;color:#aaa;letter-spacing:1px;">— every bit helps!</span>
+</a>
+
 </div>
 
 <!-- SETTINGS -->
+
 <div id="settings" class="hidden">
   <div id="settings-title">⚙ SETTINGS</div>
 
@@ -300,7 +305,10 @@ html,body{width:100%;height:100%;overflow:hidden;background:#0d0d0d;font-family:
       <span class="set-row-label">Early Bombs</span>
       <label class="toggle"><input type="checkbox" id="set-earlybombs" onchange="saveSetting('earlybombs',this.checked)"><div class="toggle-track"></div></label>
 
-    </div>
+```
+</div>
+```
+
   </div>
 
   <div class="set-section">
@@ -338,10 +346,12 @@ html,body{width:100%;height:100%;overflow:hidden;background:#0d0d0d;font-family:
     </div>
   </div>
 
-  <button id="settings-done" onclick="closeSettings()">DONE</button>
+<button id="settings-done" onclick="closeSettings()">DONE</button>
+
 </div>
 
 <!-- RANKINGS -->
+
 <div id="rankings" class="hidden">
   <div id="rankings-title">GAME OVER</div>
   <div id="rankings-sub">final results</div>
@@ -366,6 +376,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:#0d0d0d;font-family:
 </div>
 
 <!-- GAME -->
+
 <div id="app">
   <div id="topbar">
     <h1>🎱 LUCKY BALLS</h1>
@@ -855,7 +866,7 @@ function isTouchInControls(t) {
 let aimTouchId   = null;  // identifier of the active tracking touch
 let aimLastX     = 0;     // last known clientX for the active touch
 let aimLastY     = 0;     // last known clientY for the active touch
-const SENSITIVITY = 0.010; // radians per pixel of horizontal drag
+const SENSITIVITY = 0.005; // halved for softer fine-control // radians per pixel of horizontal drag
 
 document.addEventListener('touchstart', e => {
   if (G.phase !== 'aiming' || !G.cue || spinDn) return;
@@ -1016,7 +1027,7 @@ function shoot() {
   // Both use linear formula: spd = a + power*b
   const spd = settings.mobile
     ? -0.2469 + G.power * 0.1234   // mobile: min=5.18, default=8.64, max=12.10
-    : -0.4526 + G.power * 0.2263;  // desktop: min=9.50, default=15.84, max=22.18
+    : -8.5989 + G.power * 0.3394;  // desktop: min=6.34 (-60%), default=15.84, max=25.34 (+60%)
   G.cue.vx=Math.cos(G.aimAngle)*spd + G.spinX*1.4;
   G.cue.vy=Math.sin(G.aimAngle)*spd + G.spinY*1.4;
   G.phase='rolling'; G.combo=0;
@@ -2324,5 +2335,6 @@ requestAnimationFrame(() => {
   requestAnimationFrame(ts=>{lastTs=ts;requestAnimationFrame(loop);});
 });
 </script>
+
 </body>
 </html>
