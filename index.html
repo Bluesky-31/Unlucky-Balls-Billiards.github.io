@@ -15,13 +15,19 @@
 html,body{width:100%;height:100%;overflow:hidden;background:#0d0d0d;font-family:'Share Tech Mono','Courier New','Lucida Console',monospace;color:#e8e0cc;}
 
 /* ── SETTINGS SCREEN ── */
-#settings{position:fixed;inset:0;background:#0d0d0d;display:flex;flex-direction:column;align-items:center;z-index:150;padding:28px 20px 24px;overflow-y:auto;}
+#settings{position:fixed;inset:0;background:#0a0a0a;display:flex;flex-direction:column;align-items:center;z-index:150;padding:24px 16px 32px;overflow-y:scroll;-webkit-overflow-scrolling:touch;}
 #settings.hidden{display:none;}
-#settings-title{font-family:‘Black Ops One’,Impact,‘Arial Black’,fantasy,cursive;font-size:1.6rem;letter-spacing:4px;color:#ff6b00;margin-bottom:24px;}
-.set-section{width:100%;max-width:340px;margin-bottom:22px;}
-.set-section-label{font-size:.55rem;letter-spacing:3px;color:#aaa;text-transform:uppercase;margin-bottom:10px;border-bottom:1px solid #1a1a1a;padding-bottom:4px;}
-.set-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;}
-.set-row-label{font-size:.8rem;color:#ddd;}
+#settings-title{font-family:‘Black Ops One’,Impact,‘Arial Black’,fantasy,cursive;font-size:1.5rem;letter-spacing:4px;color:#ff6b00;margin-bottom:20px;}
+.set-panel{width:100%;max-width:360px;background:#141414;border:1px solid #222;border-radius:12px;margin-bottom:12px;overflow:visible;}
+.set-panel-header{display:flex;align-items:center;gap:8px;padding:10px 14px;background:#1a1a1a;border-bottom:1px solid #222;}
+.set-panel-icon{font-size:1rem;}
+.set-panel-title{font-family:‘Black Ops One’,Impact,‘Arial Black’,fantasy,cursive;font-size:.7rem;letter-spacing:3px;color:#ff6b00;}
+.set-section{width:100%;max-width:360px;margin-bottom:12px;}
+.set-section-label{font-size:.5rem;letter-spacing:3px;color:#888;text-transform:uppercase;margin-bottom:8px;padding-bottom:3px;}
+.set-row{display:flex;align-items:center;justify-content:space-between;padding:9px 14px;border-bottom:1px solid #1e1e1e;}
+.set-row:last-child{border-bottom:none;}
+.set-row-label{font-size:.78rem;color:#ccc;flex:1;}
+.set-row-desc{font-size:.58rem;color:#666;margin-top:1px;}
 /* Toggle — bigger and clearly visible */
 .toggle{position:relative;width:60px;height:32px;flex-shrink:0;}
 .toggle input{opacity:0;width:0;height:0;position:absolute;}
@@ -62,8 +68,8 @@ box-shadow:0 2px 5px rgba(0,0,0,0.4);
 #home-title{font-family:‘Black Ops One’,Impact,‘Arial Black’,fantasy,cursive;font-size:2.4rem;letter-spacing:5px;color:#ff6b00;text-shadow:0 0 24px rgba(255,107,0,.6);text-align:center;line-height:1.1;margin-bottom:6px;}
 #home-sub{font-size:.7rem;letter-spacing:3px;color:#bbb;text-transform:uppercase;margin-bottom:32px;}
 .diff-label{font-size:.6rem;letter-spacing:3px;color:#ccc;text-transform:uppercase;margin-bottom:10px;text-align:center;}
-.diff-btns{display:flex;gap:10px;margin-bottom:32px;}
-.diff-btn{font-family:‘Black Ops One’,Impact,‘Arial Black’,fantasy,cursive;font-size:.85rem;letter-spacing:2px;padding:12px 22px;border:2px solid #555;border-radius:6px;background:transparent;color:#bbb;cursor:pointer;transition:all .15s;}
+.diff-btns{display:flex;flex-wrap:wrap;justify-content:center;gap:8px;margin-bottom:24px;max-width:340px;}
+.diff-btn{font-family:‘Black Ops One’,Impact,‘Arial Black’,fantasy,cursive;font-size:.78rem;letter-spacing:1px;padding:10px 16px;border:2px solid #555;border-radius:6px;background:transparent;color:#bbb;cursor:pointer;transition:all .15s;}
 .diff-btn.active{border-color:#ff6b00;color:#ff6b00;background:rgba(255,107,0,.1);}
 #home-desc{font-size:.68rem;color:#bbb;letter-spacing:1px;text-align:center;margin-bottom:28px;line-height:1.7;min-height:40px;}
 #home-start{font-family:‘Black Ops One’,Impact,‘Arial Black’,fantasy,cursive;font-size:1.2rem;letter-spacing:4px;padding:16px 48px;background:#ff6b00;border:none;border-radius:8px;color:#000;cursor:pointer;}
@@ -253,9 +259,10 @@ overflow-y:auto;background:#0e0e0e;width:100%;height:100%;
   <div id="home-sub">💣 &nbsp; pocket balls, dodge the bombs</div>
   <div class="diff-label">Select Difficulty</div>
   <div class="diff-btns">
-    <button class="diff-btn" id="d-easy"  onclick="selectDiff('easy')">EASY</button>
+    <button class="diff-btn" id="d-easy"   onclick="selectDiff('easy')">EASY</button>
     <button class="diff-btn active" id="d-normal" onclick="selectDiff('normal')">NORMAL</button>
-    <button class="diff-btn" id="d-hard"  onclick="selectDiff('hard')">HARD</button>
+    <button class="diff-btn" id="d-hard"   onclick="selectDiff('hard')">HARD</button>
+    <button class="diff-btn" id="d-practice" onclick="selectDiff('practice')">🎯 PRACTICE</button>
   </div>
   <div id="home-desc">Normal speed. Standard ball count per level.</div>
   <div style="display:flex;gap:12px;margin-top:4px;">
@@ -287,62 +294,88 @@ border:1px solid rgba(255,80,80,0.35);">
 <div id="settings" class="hidden">
   <div id="settings-title">⚙ SETTINGS</div>
 
-  <div class="set-section">
-    <div class="set-section-label">Gameplay</div>
-    <div class="set-row">
-      <span class="set-row-label">Beginner — No Time Limit</span>
-      <label class="toggle"><input type="checkbox" id="set-timer" checked onchange="saveSetting('timer',this.checked)"><div class="toggle-track"></div></label>
-    </div>
-    <div class="set-row">
-      <span class="set-row-label">Show Ball Path</span>
-      <label class="toggle"><input type="checkbox" id="set-ballpath" checked onchange="saveSetting('ballpath',this.checked)"><div class="toggle-track"></div></label>
-    </div>
-    <div class="set-row">
-      <span class="set-row-label">Sudden Death (scratch = lose)</span>
-      <label class="toggle"><input type="checkbox" id="set-suddendeath" onchange="saveSetting('suddendeath',this.checked)"><div class="toggle-track"></div></label>
-    </div>
-    <div class="set-row">
-      <span class="set-row-label">Early Bombs</span>
-      <label class="toggle"><input type="checkbox" id="set-earlybombs" onchange="saveSetting('earlybombs',this.checked)"><div class="toggle-track"></div></label>
+  <!-- HOW TO PLAY — first so new players see it immediately -->
+
+  <div class="set-panel">
+    <div class="set-panel-header"><span class="set-panel-icon">📖</span><span class="set-panel-title">HOW TO PLAY</span></div>
+    <div style="padding:12px 14px;font-size:.75rem;color:#bbb;line-height:1.9;">
+      <div style="color:#ff6b00;font-size:.62rem;letter-spacing:2px;margin-bottom:5px;">🎯 OBJECTIVE</div>
+      <div style="margin-bottom:10px;">Sink all balls before timers run out. Clear all 10 levels to win. Use 🎯 Practice mode to try shots freely with no balls or limits.</div>
 
 ```
+  <div style="color:#ff6b00;font-size:.62rem;letter-spacing:2px;margin-bottom:5px;">🎱 THE BALLS</div>
+  <div style="margin-bottom:3px;"><span style="color:#fff;">Coloured balls</span> — sink these to score</div>
+  <div style="margin-bottom:3px;"><span style="color:#fff;">💣 Ticking bombs</span> — sink before the timer hits zero</div>
+  <div style="margin-bottom:10px;"><span style="color:#fff;">😠 Angry balls</span> — must be sunk · hitting lights a 20s fuse · smashing one hard = instant loss</div>
+
+  <div style="color:#ff6b00;font-size:.62rem;letter-spacing:2px;margin-bottom:5px;">🕹️ CONTROLS</div>
+  <div style="margin-bottom:3px;"><span style="color:#fff;">Desktop</span> — mouse to aim · click or Space to fire · A/F = power</div>
+  <div style="margin-bottom:10px;"><span style="color:#fff;">Mobile</span> — drag to aim · quick tap fires · FIRE button</div>
+
+  <div style="color:#ff6b00;font-size:.62rem;letter-spacing:2px;margin-bottom:5px;">🌀 SPIN</div>
+  <div style="margin-bottom:10px;">Tap T/B/L/R on the spin pad · kicks in mid-table · resets after each shot</div>
+
+  <div style="color:#ff6b00;font-size:.62rem;letter-spacing:2px;margin-bottom:5px;">❤️ LIVES &amp; SCORING</div>
+  <div>Easy 3 lives · Normal 2 · Hard 1 · Combos multiply your points</div>
 </div>
 ```
 
   </div>
 
-  <div class="set-section">
-    <div class="set-section-label">Table Cloth Colour</div>
-    <div class="swatch-row" id="felt-swatches">
-      <div class="swatch active" data-felt="green"  style="background:linear-gradient(135deg,#236b3a,#143d22)" onclick="setFelt('green')"></div>
-      <div class="swatch"        data-felt="blue"   style="background:linear-gradient(135deg,#1a3d6b,#0d2040)" onclick="setFelt('blue')"></div>
-      <div class="swatch"        data-felt="black"  style="background:linear-gradient(135deg,#1a1a1a,#0a0a0a)" onclick="setFelt('black')"></div>
-      <div class="swatch"        data-felt="pink"   style="background:linear-gradient(135deg,#8b2252,#5a1435)" onclick="setFelt('pink')"></div>
-      <div class="swatch"        data-felt="red"    style="background:linear-gradient(135deg,#7a1a1a,#4a0e0e)" onclick="setFelt('red')"></div>
+  <!-- GAMEPLAY -->
+
+  <div class="set-panel">
+    <div class="set-panel-header"><span class="set-panel-icon">🎮</span><span class="set-panel-title">GAMEPLAY</span></div>
+    <div class="set-row">
+      <div><div class="set-row-label">No Time Limit</div><div class="set-row-desc">Beginner friendly — bombs don't tick down</div></div>
+      <label class="toggle"><input type="checkbox" id="set-timer" checked onchange="saveSetting('timer',this.checked)"><div class="toggle-track"></div></label>
+    </div>
+    <div class="set-row">
+      <div><div class="set-row-label">Show Ball Path</div><div class="set-row-desc">Forecast line shows cue ball trajectory</div></div>
+      <label class="toggle"><input type="checkbox" id="set-ballpath" checked onchange="saveSetting('ballpath',this.checked)"><div class="toggle-track"></div></label>
+    </div>
+    <div class="set-row">
+      <div><div class="set-row-label">Sudden Death</div><div class="set-row-desc">Scratch into pocket = lose the round</div></div>
+      <label class="toggle"><input type="checkbox" id="set-suddendeath" onchange="saveSetting('suddendeath',this.checked)"><div class="toggle-track"></div></label>
+    </div>
+    <div class="set-row">
+      <div><div class="set-row-label">Early Angry Balls</div><div class="set-row-desc">Angry balls appear 2 levels sooner</div></div>
+      <label class="toggle"><input type="checkbox" id="set-earlybombs" onchange="saveSetting('earlybombs',this.checked)"><div class="toggle-track"></div></label>
     </div>
   </div>
 
-  <div class="set-section">
-    <div class="set-section-label">Cue Stick Colour</div>
-    <div class="swatch-row" id="cue-swatches">
-      <div class="cue-swatch active" data-cue="classic" style="background:linear-gradient(90deg,#f5d06e,#5c3317)" onclick="setCue('classic')"></div>
-      <div class="cue-swatch"        data-cue="white"   style="background:linear-gradient(90deg,#f0f0f0,#888)"   onclick="setCue('white')"></div>
-      <div class="cue-swatch"        data-cue="black"   style="background:linear-gradient(90deg,#555,#111)"       onclick="setCue('black')"></div>
-      <div class="cue-swatch"        data-cue="blue"    style="background:linear-gradient(90deg,#6ab0f5,#1a3d6b)" onclick="setCue('blue')"></div>
-      <div class="cue-swatch"        data-cue="red"     style="background:linear-gradient(90deg,#f56a6a,#7a1a1a)" onclick="setCue('red')"></div>
-      <div class="cue-swatch"        data-cue="gold"    style="background:linear-gradient(90deg,#ffd700,#b8860b)" onclick="setCue('gold')"></div>
-    </div>
-  </div>
+  <!-- CUSTOMISE -->
 
-  <div class="set-section">
-    <div class="set-section-label">Cue Stick Design</div>
-    <div class="set-row">
-      <span class="set-row-label">Floral Pattern</span>
-      <label class="toggle"><input type="checkbox" id="set-flowers" onchange="onDesignToggle('flowers',this.checked)"><div class="toggle-track"></div></label>
+  <div class="set-panel">
+    <div class="set-panel-header"><span class="set-panel-icon">🎨</span><span class="set-panel-title">CUSTOMISE</span></div>
+    <div style="padding:10px 14px 4px;">
+      <div style="font-size:.55rem;letter-spacing:2px;color:#888;text-transform:uppercase;margin-bottom:8px;">Table Cloth</div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px;" id="felt-swatches">
+        <div class="swatch active" data-felt="green"  title="Green"  style="background:linear-gradient(135deg,#236b3a,#143d22)" onclick="setFelt('green')"></div>
+        <div class="swatch"        data-felt="blue"   title="Blue"   style="background:linear-gradient(135deg,#1a3d6b,#0d2040)" onclick="setFelt('blue')"></div>
+        <div class="swatch"        data-felt="black"  title="Black"  style="background:linear-gradient(135deg,#1a1a1a,#0a0a0a)" onclick="setFelt('black')"></div>
+        <div class="swatch"        data-felt="pink"   title="Pink"   style="background:linear-gradient(135deg,#8b2252,#5a1435)" onclick="setFelt('pink')"></div>
+        <div class="swatch"        data-felt="red"    title="Red"    style="background:linear-gradient(135deg,#7a1a1a,#4a0e0e)" onclick="setFelt('red')"></div>
+      </div>
+      <div style="font-size:.55rem;letter-spacing:2px;color:#888;text-transform:uppercase;margin-bottom:8px;">Cue Stick</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;" id="cue-swatches">
+        <div class="cue-swatch active" data-cue="classic" title="Classic" style="background:linear-gradient(90deg,#f5d06e,#5c3317)" onclick="setCue('classic')"></div>
+        <div class="cue-swatch"        data-cue="white"   title="White"   style="background:linear-gradient(90deg,#f0f0f0,#888)"   onclick="setCue('white')"></div>
+        <div class="cue-swatch"        data-cue="black"   title="Black"   style="background:linear-gradient(90deg,#555,#111)"       onclick="setCue('black')"></div>
+        <div class="cue-swatch"        data-cue="blue"    title="Blue"    style="background:linear-gradient(90deg,#6ab0f5,#1a3d6b)" onclick="setCue('blue')"></div>
+        <div class="cue-swatch"        data-cue="red"     title="Red"     style="background:linear-gradient(90deg,#f56a6a,#7a1a1a)" onclick="setCue('red')"></div>
+        <div class="cue-swatch"        data-cue="gold"    title="Gold"    style="background:linear-gradient(90deg,#ffd700,#b8860b)" onclick="setCue('gold')"></div>
+      </div>
     </div>
-    <div class="set-row">
-      <span class="set-row-label">Skull Pattern</span>
-      <label class="toggle"><input type="checkbox" id="set-skulls" onchange="onDesignToggle('skulls',this.checked)"><div class="toggle-track"></div></label>
+    <div style="border-top:1px solid #1e1e1e;">
+      <div class="set-row">
+        <div><div class="set-row-label">Floral Pattern</div><div class="set-row-desc">Decorative floral design on cue</div></div>
+        <label class="toggle"><input type="checkbox" id="set-flowers" onchange="onDesignToggle('flowers',this.checked)"><div class="toggle-track"></div></label>
+      </div>
+      <div class="set-row">
+        <div><div class="set-row-label">Skull Pattern</div><div class="set-row-desc">Skull &amp; crossbones design on cue</div></div>
+        <label class="toggle"><input type="checkbox" id="set-skulls" onchange="onDesignToggle('skulls',this.checked)"><div class="toggle-track"></div></label>
+      </div>
     </div>
   </div>
 
@@ -427,11 +460,12 @@ border:1px solid rgba(255,80,80,0.35);">
 <script>
 // ── Difficulty ────────────────────────────────────────────────────────────
 const DIFF_DESCS = {
-  easy:   'Extra time (+50%) and fewer balls (-20%) per level.',
-  normal: 'Normal speed. Standard ball count per level.',
-  hard:   'Same time but 20% more balls per level. Good luck.'
+  easy:     'Extra time (+50%) and fewer balls per level.',
+  normal:   'Normal speed. Standard ball count per level.',
+  hard:     'Same time but 20% more balls per level. Good luck.',
+  practice: 'Empty table. No balls, no timers. Practice spin, power and angles freely.'
 };
-const DIFF_LABELS = { easy:'EZ', normal:'NRM', hard:'HRD' };
+const DIFF_LABELS = { easy:'EZ', normal:'NRM', hard:'HRD', practice:'PRX' };
 
 // ── Settings state ─────────────────────────────────────────────────────────
 const FELT_COLORS = {
@@ -538,21 +572,39 @@ let difficulty = 'normal';
 
 function selectDiff(d) {
   difficulty = d;
-  document.querySelectorAll('.diff-btn').forEach(b => b.classList.remove('active'));
-  document.getElementById('d-'+d).classList.add('active');
+  document.querySelectorAll('.diff-btn').forEach(b => {
+    b.classList.remove('active');
+    // restore practice button colour when deselected
+    if(b.id==='d-practice'){ b.style.borderColor=''; b.style.color=''; b.style.background=''; }
+  });
+  const btn = document.getElementById('d-'+d);
+  btn.classList.add('active');
+  // Practice mode gets blue active colour instead of orange
+  if(d==='practice'){
+    btn.style.borderColor='#66aaff'; btn.style.color='#66aaff';
+    btn.style.background='rgba(68,136,204,0.15)';
+  } else {
+    btn.style.borderColor=''; btn.style.color=''; btn.style.background='';
+  }
   document.getElementById('home-desc').textContent = DIFF_DESCS[d];
 }
 
 function launchGame() {
   document.getElementById('home').classList.add('hidden');
   document.getElementById('s-diff').textContent = DIFF_LABELS[difficulty];
-  // Apply difficulty defaults for ballpath and suddendeath
-  // (only if not overridden by user via settings)
+  if(difficulty === 'practice'){
+    // Practice mode: empty table, no timers, no scoring
+    settings.ballpath = true;
+    settings.timer    = false;
+    G.score=0; G.level=1; G.lives=99;
+    updateLivesDisplay();
+    startPractice();
+    return;
+  }
   if (difficulty === 'easy') {
     settings.ballpath    = true;
     settings.suddendeath = false;
   } else {
-    // normal and hard
     settings.ballpath    = false;
     settings.suddendeath = true;
   }
@@ -560,6 +612,26 @@ function launchGame() {
   G.lives = difficulty === 'easy' ? 3 : difficulty === 'hard' ? 1 : 2;
   updateLivesDisplay();
   startLevel();
+}
+
+function startPractice() {
+  document.getElementById('overlay').classList.add('hidden');
+  buildTable();
+  G.balls = []; // no target balls
+  G.particles = []; G.combo = 0; G.explosion = null;
+  G.cue = T.isPortrait
+    ? {x:T.ix+Math.round(T.iw/2),   y:T.iy+Math.round(T.ih*0.5), vx:0,vy:0,r:BALL_R,spinX:0,spinY:0,_distTravelled:0}
+    : {x:T.ix+Math.round(T.iw*0.25),y:T.iy+Math.round(T.ih/2),   vx:0,vy:0,r:BALL_R,spinX:0,spinY:0,_distTravelled:0};
+  // Aim along the table axis: up in portrait (mobile), right in landscape (desktop)
+  G.aimAngle = T.isPortrait ? -Math.PI/2 : 0;
+  G.phase = 'aiming';
+  document.getElementById('s-left').textContent = '∞';
+  document.getElementById('s-score').textContent = '0';
+  document.getElementById('s-lvl').textContent = '–';
+  document.getElementById('s-lives').textContent = '🎯';
+  // Practice: shooting cue ball respawns it after stopping, so you can shoot forever
+  G._practiceMode = true;
+  refreshStrip();
 }
 
 function goHome() {
@@ -621,27 +693,30 @@ function buildTable() {
         left:ix, right:ix+iw, top:iy, bottom:iy+ih, isPortrait };
   // All pockets: corner pockets at exact felt corner, side pockets centred on rail
   // Rail centre = halfway between outer edge and felt edge = RAIL/2 from felt
-  const railMid = Math.round(RAIL / 2); // pocket centre sits mid-rail
-  // Inset pockets into the felt so holes sit on the playing surface
-  const CI = Math.round(PR_CORNER * 0.7); // corner inset — hole mostly on felt
-  const SI = Math.round(PR_SIDE   * 0.4); // side inset — pulled onto cloth
+  const railMid = Math.round(RAIL / 2);
+  // On mobile portrait: corners same size as sides, x-position matches side pockets
+  // On desktop/landscape: normal corner sizing and inset
+  const CI = settings.mobile ? Math.round(PR_SIDE * 0.4) : Math.round(PR_CORNER * 0.7);
+  const SI = Math.round(PR_SIDE * 0.4);
+  // Mobile corner radius = side radius for visual consistency
+  const PR_C = settings.mobile ? PR_SIDE : PR_CORNER;
   if (isPortrait) {
     T.pockets = [
-      {x:T.ix+CI,           y:T.iy+CI,           r:PR_CORNER}, // top-left corner
-      {x:T.ix+T.iw-CI,      y:T.iy+CI,           r:PR_CORNER}, // top-right corner
-      {x:T.ix+SI,           y:T.iy+T.ih/2,       r:PR_SIDE},   // mid-left side
-      {x:T.ix+T.iw-SI,      y:T.iy+T.ih/2,       r:PR_SIDE},   // mid-right side
-      {x:T.ix+CI,           y:T.iy+T.ih-CI,      r:PR_CORNER}, // bottom-left corner
-      {x:T.ix+T.iw-CI,      y:T.iy+T.ih-CI,      r:PR_CORNER}, // bottom-right corner
+      {x:T.ix+CI,           y:T.iy+CI,           r:PR_C},    // top-left corner
+      {x:T.ix+T.iw-CI,      y:T.iy+CI,           r:PR_C},    // top-right corner
+      {x:T.ix+SI,           y:T.iy+T.ih/2,       r:PR_SIDE}, // mid-left side
+      {x:T.ix+T.iw-SI,      y:T.iy+T.ih/2,       r:PR_SIDE}, // mid-right side
+      {x:T.ix+CI,           y:T.iy+T.ih-CI,      r:PR_C},    // bottom-left corner
+      {x:T.ix+T.iw-CI,      y:T.iy+T.ih-CI,      r:PR_C},    // bottom-right corner
     ];
   } else {
     T.pockets = [
-      {x:T.ix+CI,           y:T.iy+CI,           r:PR_CORNER}, // top-left corner
-      {x:T.ix+T.iw/2,       y:T.iy+SI,           r:PR_SIDE},   // top-mid side
-      {x:T.ix+T.iw-CI,      y:T.iy+CI,           r:PR_CORNER}, // top-right corner
-      {x:T.ix+CI,           y:T.iy+T.ih-CI,      r:PR_CORNER}, // bottom-left corner
-      {x:T.ix+T.iw/2,       y:T.iy+T.ih-SI,      r:PR_SIDE},   // bottom-mid side
-      {x:T.ix+T.iw-CI,      y:T.iy+T.ih-CI,      r:PR_CORNER}, // bottom-right corner
+      {x:T.ix+CI,           y:T.iy+CI,           r:PR_C},    // top-left corner
+      {x:T.ix+T.iw/2,       y:T.iy+SI,           r:PR_SIDE}, // top-mid side
+      {x:T.ix+T.iw-CI,      y:T.iy+CI,           r:PR_C},    // top-right corner
+      {x:T.ix+CI,           y:T.iy+T.ih-CI,      r:PR_C},    // bottom-left corner
+      {x:T.ix+T.iw/2,       y:T.iy+T.ih-SI,      r:PR_SIDE}, // bottom-mid side
+      {x:T.ix+T.iw-CI,      y:T.iy+T.ih-CI,      r:PR_C},    // bottom-right corner
     ];
   }
 }
@@ -667,7 +742,6 @@ window.addEventListener('resize', resizeCanvas);
 // ── Game state ─────────────────────────────────────────────────────────────
 const BCOLORS = ['#f5c518','#2255cc','#ee2222','#7b2fbe','#ff8800','#228b22','#8b2500','#111111','#ddbb00','#1177cc','#cc2244','#116611','#aa4400','#333333'];
 let BALL_R = 23; // updated by mobile mode
-const FRICTION = 0.983;
 const MIN_SPD  = 0.25;
 
 let G = {
@@ -821,15 +895,18 @@ function startLevel() {
     const isBomb    = lvl.hasBombs;
     const isDanger  = dangerIndices.has(i); // hitting this ends the game
     const tv = lvl.t + (Math.random()-0.5)*4;
-    const br = isDanger ? BALL_R * 2 : BALL_R; // danger bomb = 2× ball size
+    const br = BALL_R; // danger bombs now same size as regular balls
     G.balls.push({
       x:pos.x, y:pos.y, vx:0,vy:0, r:br,
-      color: isDanger ? '#111111' : BCOLORS[i % BCOLORS.length],
+      color: isDanger ? '#e8e8e0' : BCOLORS[i % BCOLORS.length], // angry ball = cream white
       isBomb, isDanger,
       timer:tv, maxTimer:tv, id:i,
       potted:false, exploded:false,
       ph:Math.random()*Math.PI*2,
-      fuseAngle: Math.random()*Math.PI*2 // random fuse direction
+      fuseAngle: Math.random()*Math.PI*2,
+      fuseActive: false,  // fuse lights on hard hit
+      fuseTimer: 20,      // 20s countdown after fuse lit
+      fuseMaxTimer: 20
     });
   });
 
@@ -902,7 +979,7 @@ document.addEventListener('touchend', e => {
       // Fire only if touch duration was very short — a quick tap
       // Micro-adjustments take longer even if tiny distance, so they won't trigger
       const touchDuration = Date.now() - aimTouchStart;
-      if (settings.mobile && touchDuration < 180 && G.phase === 'aiming' && G.cue) {
+      if (settings.mobile && touchDuration < 100 && G.phase === 'aiming' && G.cue) {
         // Make sure tap wasn't on the controls panel
         const el = document.elementFromPoint(t.clientX, t.clientY);
         if (!controlsEl.contains(el)) {
@@ -1053,14 +1130,15 @@ document.getElementById('fire-btn').addEventListener('touchstart', e=>e.stopProp
 
 // ── Shoot ──────────────────────────────────────────────────────────────────
 function shoot() {
-  if(G.phase!=='aiming'||!G.cue) return;
+  const showingEarly = G.phase==='rolling' && G.cue && G.cue._showCue;
+  if((G.phase!=='aiming' && !showingEarly)||!G.cue) return;
   // Desktop: ±40% of default(72) across slider range
   // Mobile:  ±40% of default(72) across slider range
   // Both use linear formula: spd = a + power*b
   // Mobile: gentler min (3.17), same default (15.84), 90% max (31.5)
   // Desktop: min=9.5, default=15.84, max=35
   const spd = settings.mobile
-    ? -23.4276 + G.power*0.6974 + G.power*G.power*-0.002111
+    ? -18.7124 + G.power*0.5571 + G.power*G.power*-0.001684
     : 25.4388  + G.power*(-0.7220) + G.power*G.power*0.0082;
   G.cue.vx=Math.cos(G.aimAngle)*spd;
   G.cue.vy=Math.sin(G.aimAngle)*spd;
@@ -1098,45 +1176,46 @@ function castRay(ox,oy,dx,dy,r) {
 // ── Physics ────────────────────────────────────────────────────────────────
 function moveBall(ball,isCue) {
   ball.x+=ball.vx; ball.y+=ball.vy;
-  ball.vx*=FRICTION; ball.vy*=FRICTION;
-  // Spin physics for cue ball — activates after 50% of table short side travelled
+  const FR = settings.mobile ? 0.976 : 0.983;
+  ball.vx*=FR; ball.vy*=FR;
+  // Spin is preserved during travel and applied at ball contact only
+  // No speed modification during travel — spin doesn't meaningfully change
+  // travel speed in real billiards, only contact behaviour matters
   if(isCue && (ball.spinX||ball.spinY)){
     const spd=Math.hypot(ball.vx,ball.vy);
-    if(!ball._distTravelled) ball._distTravelled=0;
-    ball._distTravelled += spd;
-    const spinThreshold = Math.min(T.iw,T.ih) * 0.5; // 50% of short side
-    if(spd > MIN_SPD*2 && ball._distTravelled >= spinThreshold){
-      const spinDecay = 0.996;
-      const topInfluence  = -ball.spinY * 0.013 * spd;
-      const sideInfluence =  ball.spinX * 0.011 * spd;
-      if(spd>0){
-        ball.vx += (ball.vx/spd)*topInfluence + (ball.vy/spd)*sideInfluence;
-        ball.vy += (ball.vy/spd)*topInfluence - (ball.vx/spd)*sideInfluence;
-      }
-      ball.spinX *= spinDecay; ball.spinY *= spinDecay;
-    }
+    if(spd < MIN_SPD * 4){ ball.spinX=0; ball.spinY=0; } // kill spin when nearly stopped
   }
-  // Wall bounces with sidespin effect
+  // Wall bounces with full spin effects
+  // Left wall
   if(ball.x-ball.r<T.left){
     ball.x=T.left+ball.r;
-    ball.vx=Math.abs(ball.vx)*0.8;
-    if(isCue&&ball.spinX) ball.vy+=ball.spinX*Math.abs(ball.vx)*0.29;
+    const preSpd=Math.abs(ball.vx);
+    ball.vx=preSpd*0.8;
+    if(isCue&&ball.spinX) ball.vy += ball.spinX * preSpd * 0.55; // R-spin deflects down, L-spin up
   }
+  // Right wall
   if(ball.x+ball.r>T.right){
     ball.x=T.right-ball.r;
-    ball.vx=-Math.abs(ball.vx)*0.8;
-    if(isCue&&ball.spinX) ball.vy+=ball.spinX*Math.abs(ball.vx)*0.29;
+    const preSpd=Math.abs(ball.vx);
+    ball.vx=-preSpd*0.8;
+    if(isCue&&ball.spinX) ball.vy -= ball.spinX * preSpd * 0.55;
   }
+  // Top wall
   if(ball.y-ball.r<T.top){
     ball.y=T.top+ball.r;
-    ball.vy=Math.abs(ball.vy)*0.8;
-    if(isCue&&ball.spinX) ball.vx+=ball.spinX*Math.abs(ball.vy)*0.29;
+    const preSpd=Math.abs(ball.vy);
+    ball.vy=preSpd*0.8;
+    if(isCue&&ball.spinX) ball.vx += ball.spinX * preSpd * 0.55; // sidespin deflects along wall
   }
+  // Bottom wall
   if(ball.y+ball.r>T.bottom){
     ball.y=T.bottom-ball.r;
-    ball.vy=-Math.abs(ball.vy)*0.8;
-    if(isCue&&ball.spinX) ball.vx+=ball.spinX*Math.abs(ball.vy)*0.29;
+    const preSpd=Math.abs(ball.vy);
+    ball.vy=-preSpd*0.8;
+    if(isCue&&ball.spinX) ball.vx -= ball.spinX * preSpd * 0.55;
   }
+  // Snap to full stop AFTER all bounces — ball touching wall can't re-enter loop
+  if(Math.hypot(ball.vx,ball.vy) < MIN_SPD){ ball.vx=0; ball.vy=0; }
   for(const p of T.pockets){
     const pR = p.r || T.pr; // per-pocket radius
     const dist = Math.hypot(ball.x-p.x,ball.y-p.y);
@@ -1181,17 +1260,46 @@ function resolveBB(a,b) {
   if(dvn>0){
     a.vx-=dvn*nx;a.vy-=dvn*ny;
     b.vx+=dvn*nx;b.vy+=dvn*ny;
-    // Apply cue ball spin effect after contact
-    // Backspin (spinY>0): reduce cue follow, can draw back
-    // Topspin (spinY<0): cue follows target ball
+    // ── Spin effects after cue ball contacts object ball ─────────────────────
+    // spinY = -1 → TOPSPIN  (T): cue follows forward (follow shot)
+    // spinY = +1 → BACKSPIN (B): cue draws back (draw/stun shot)
+    // spinX = ±1 → SIDESPIN (L/R): cue deflects sideways
     if(a.spinX!==undefined&&(a.spinX||a.spinY)){
-      const spinStr = Math.hypot(a.spinX,a.spinY);
-      // Backspin: push cue backward along normal (strong draw)
-      a.vx += nx * a.spinY * dvn * 0.32;
-      a.vy += ny * a.spinY * dvn * 0.32;
-      // Sidespin: deflect cue perpendicular (strong angle)
-      a.vx += (-ny) * a.spinX * dvn * 0.22;
-      a.vy += nx    * a.spinX * dvn * 0.22;
+      const topspin  = Math.max(0, -a.spinY); // 0..1, positive when T
+      const backspin = Math.max(0,  a.spinY); // 0..1, positive when B
+
+      // After a standard collision, cue ball velocity along normal is reversed
+      // (it already stopped / slightly bounced back from resolveBB above)
+      // We now add spin-driven override on top of that:
+
+      // TOPSPIN — cue ball continues forward in the direction it was travelling
+      // We do this by adding velocity back along the contact normal (nx,ny)
+      // which IS the direction the cue was travelling for a straight shot
+      if(topspin > 0){
+        const followStr = topspin * dvn * 0.45;
+        a.vx += nx * followStr;
+        a.vy += ny * followStr;
+      }
+
+      // BACKSPIN — cue ball draws back AGAINST the contact normal
+      // For a straight-on shot this reverses it. For angled shots it
+      // pulls it off at a sharper angle back toward the shooter.
+      if(backspin > 0){
+        const drawStr = backspin * dvn * 0.60;
+        a.vx -= nx * drawStr;
+        a.vy -= ny * drawStr;
+      }
+
+      // SIDESPIN — deflect cue ball perpendicular to the contact normal
+      // (-ny, nx) is the tangent direction perpendicular to contact
+      if(a.spinX){
+        const sideStr = Math.abs(a.spinX) * dvn * 0.28;
+        a.vx += (-ny) * Math.sign(a.spinX) * sideStr;
+        a.vy += nx    * Math.sign(a.spinX) * sideStr;
+      }
+
+      // All spin consumed on contact
+      a.spinX = 0; a.spinY = 0;
     }
   }
 }
@@ -1203,9 +1311,11 @@ function checkDangerBombs() {
     if(!b.isDanger || b.potted || b.exploded) continue;
     const d = Math.hypot(G.cue.x - b.x, G.cue.y - b.y);
     if(d < G.cue.r + b.r){
-      b.exploded = true;
-      triggerLoss(b.x, b.y);
-      return true;
+      // Any hit lights the fuse — no instant explosion on contact
+      if(!b.fuseActive){
+        b.fuseActive = true;
+        b.fuseTimer = 20;
+      }
     }
   }
   return false;
@@ -1225,21 +1335,31 @@ function physics() {
   const active=G.balls.filter(b=>!b.potted&&!b.exploded);
   for(const b of active) moveBall(b,false);
 
-  // Resolve collisions — danger bombs don't bounce, they explode on contact
-  for(const b of active){
-    if(!b.isDanger) resolveBB(G.cue,b);
-  }
+  // Resolve all collisions — angry balls bounce like regular balls
+  for(const b of active) resolveBB(G.cue,b);
   for(let i=0;i<active.length;i++) for(let j=i+1;j<active.length;j++){
-    if(!active[i].isDanger && !active[j].isDanger) resolveBB(active[i],active[j]);
+    resolveBB(active[i],active[j]);
   }
 
-  const cs=Math.hypot(G.cue.vx,G.cue.vy);
-  const SLOW = MIN_SPD * 3;
-  if(cs < SLOW && !active.some(b=>Math.hypot(b.vx,b.vy) > SLOW)) {
+  const cs = Math.hypot(G.cue.vx, G.cue.vy);
+  const STOP = MIN_SPD * 5;  // threshold to consider a ball stopped
+  const CUE_SHOW = MIN_SPD * 12; // cue stick appears when cue is this slow
+
+  // Cue ball slow enough to show the cue stick early
+  G.cue._showCue = (cs < CUE_SHOW);
+
+  const allSlow = cs < STOP && !active.some(b => Math.hypot(b.vx,b.vy) > STOP);
+  if(allSlow){
     G.cue.vx=0; G.cue.vy=0;
     active.forEach(b=>{ b.vx=0; b.vy=0; });
+    G.cue._showCue = true;
     G.phase='aiming';
-    checkEnd();
+    if(G._practiceMode){
+      // Practice: silently reset cue ball to centre after each shot
+      G.cue.vx=0; G.cue.vy=0; G.cue._distTravelled=0;
+    } else {
+      checkEnd();
+    }
   }
 }
 
@@ -1249,9 +1369,18 @@ function tickTimers(dt) {
   for(const b of G.balls){
     if(b.potted||b.exploded) continue;
     if(!b.isBomb) continue;
-    if(!settings.timer) continue; // Beginner mode — no time limit
-    b.timer-=dt;
-    if(b.timer<=0) explodeBall(b);
+    if(b.isDanger){
+      // Angry ball: only tick fuseTimer after fuse is lit
+      if(b.fuseActive){
+        b.fuseTimer -= dt;
+        if(b.fuseTimer <= 0) explodeBall(b);
+      }
+    } else {
+      // Regular timed bomb
+      if(!settings.timer) continue; // Beginner mode — no time limit
+      b.timer -= dt;
+      if(b.timer <= 0) explodeBall(b);
+    }
   }
   refreshStrip();
 }
@@ -1263,8 +1392,8 @@ function explodeBall(b) {
 
 function checkEnd() {
   if(G.explosion && G.explosion.t < G.explosion.maxT) return; // let explosion play out
-  // Win = all non-danger balls are potted or exploded (danger bombs don't block clear)
-  const targetBalls = G.balls.filter(b => !b.isDanger);
+  // Win = ALL balls sunk (angry balls must be sunk too, they're not optional)
+  const targetBalls = G.balls; // angry balls included
   if(!targetBalls.some(b=>!b.potted&&!b.exploded)){
     G.score+=G.level*500;
     if(G.level>=MAX_LEVEL){
@@ -1869,82 +1998,87 @@ function lighten(hex,amt){
 
 // Draw a danger bomb: two merged spheres (figure-8) + fuse + flame
 function drawDangerBomb(b, now) {
-  const r  = b.r / 2;          // each sphere radius = half the full radius
-  const fa = b.fuseAngle;       // fuse direction (perpendicular to join axis)
-  // Two sphere centres offset along the join axis (perpendicular to fuse)
-  const jx = Math.cos(fa + Math.PI/2), jy = Math.sin(fa + Math.PI/2);
-  const ax = b.x - jx*r*0.6,   ay = b.y - jy*r*0.6; // sphere A
-  const bx2= b.x + jx*r*0.6,   by2= b.y + jy*r*0.6; // sphere B
-
+  const r = b.r;
+  const fa = b.fuseAngle;
+  const pulse = b.fuseActive ? Math.abs(Math.sin(now*5)) : 0;
   ctx.save();
 
-  // Pulsing glow
-  const pulse = Math.abs(Math.sin(now*3));
-  ctx.shadowBlur = 14 + 8*pulse;
-  ctx.shadowColor = '#ff4400';
+  // Glow when fuse is lit
+  if(b.fuseActive){
+    ctx.shadowBlur = 20 + 14*pulse;
+    ctx.shadowColor = '#ff6600';
+  }
 
-  // Draw two black spheres merged
-  [{ cx:ax, cy:ay }, { cx:bx2, cy:by2 }].forEach(({cx,cy}) => {
-    const g = ctx.createRadialGradient(cx-r*0.3, cy-r*0.3, r*0.05, cx, cy, r);
-    g.addColorStop(0,'#3a3a3a');
-    g.addColorStop(0.6,'#111');
-    g.addColorStop(1,'#000');
-    ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI*2);
-    ctx.fillStyle = g; ctx.fill();
-    // Subtle sphere edge
-    ctx.strokeStyle='rgba(80,80,80,0.6)'; ctx.lineWidth=1.2; ctx.stroke();
-  });
+  // Drop shadow
+  ctx.beginPath(); ctx.arc(b.x+2, b.y+3, r, 0, Math.PI*2);
+  ctx.fillStyle='rgba(0,0,0,0.4)'; ctx.fill();
+
+  // Main ball — black with subtle dark grey highlight (visible on any cloth)
+  const bg = ctx.createRadialGradient(b.x-r*0.32, b.y-r*0.32, r*0.04, b.x, b.y, r);
+  bg.addColorStop(0, '#3a3a3a');
+  bg.addColorStop(0.5, '#1a1a1a');
+  bg.addColorStop(1, '#000000');
+  ctx.beginPath(); ctx.arc(b.x, b.y, r, 0, Math.PI*2);
+  ctx.fillStyle = bg; ctx.fill();
+
+  // White outline ring so ball is visible on dark felt
+  ctx.beginPath(); ctx.arc(b.x, b.y, r, 0, Math.PI*2);
+  ctx.strokeStyle = 'rgba(255,255,255,0.55)';
+  ctx.lineWidth = 1.8; ctx.stroke();
 
   ctx.shadowBlur = 0;
 
-  // Trigger radius circle — shows exactly where cue ball will set off the bomb
-  const triggerR = b.r; // matches physics collision threshold (cue.r + b.r)
-  ctx.save();
-  ctx.beginPath(); ctx.arc(b.x, b.y, triggerR, 0, Math.PI*2);
-  ctx.strokeStyle = `rgba(255,60,0,${0.35 + 0.25*Math.abs(Math.sin(now*3))})`;
-  ctx.lineWidth = 1.5;
-  ctx.setLineDash([4, 4]);
-  ctx.stroke();
-  ctx.setLineDash([]);
-  ctx.restore();
+  // Specular highlight — small bright spot top-left
+  const spec = ctx.createRadialGradient(b.x-r*0.3,b.y-r*0.35,0,b.x-r*0.2,b.y-r*0.2,r*0.38);
+  spec.addColorStop(0,'rgba(255,255,255,0.55)');
+  spec.addColorStop(0.6,'rgba(255,255,255,0.10)');
+  spec.addColorStop(1,'rgba(255,255,255,0)');
+  ctx.beginPath(); ctx.arc(b.x, b.y, r, 0, Math.PI*2);
+  ctx.fillStyle=spec; ctx.fill();
 
-  // Fuse: line sticking out perpendicular (along fa direction)
+  // Fuse cord — white with black outline so it reads on any cloth
   const fuseLen = r * 2.2;
-  const fx1 = b.x + Math.cos(fa)*r*0.5;
-  const fy1 = b.y + Math.sin(fa)*r*0.5;
+  const fx1 = b.x + Math.cos(fa)*r*0.88;
+  const fy1 = b.y + Math.sin(fa)*r*0.88;
   const fx2 = b.x + Math.cos(fa)*fuseLen;
   const fy2 = b.y + Math.sin(fa)*fuseLen;
-  // Fuse cord (wavy via bezier)
-  ctx.beginPath();
-  ctx.moveTo(fx1, fy1);
-  const cpx = (fx1+fx2)/2 + Math.cos(fa+Math.PI/2)*r*0.4;
-  const cpy = (fy1+fy2)/2 + Math.sin(fa+Math.PI/2)*r*0.4;
-  ctx.quadraticCurveTo(cpx, cpy, fx2, fy2);
-  ctx.strokeStyle='#888'; ctx.lineWidth=2.5; ctx.lineCap='round'; ctx.stroke();
+  const cpx = (fx1+fx2)/2 + Math.cos(fa+Math.PI/2)*r*0.55;
+  const cpy = (fy1+fy2)/2 + Math.sin(fa+Math.PI/2)*r*0.55;
+  // Black outline first
+  ctx.beginPath(); ctx.moveTo(fx1,fy1); ctx.quadraticCurveTo(cpx,cpy,fx2,fy2);
+  ctx.strokeStyle='rgba(0,0,0,0.85)'; ctx.lineWidth=4.5; ctx.lineCap='round'; ctx.stroke();
+  // White cord on top
+  ctx.beginPath(); ctx.moveTo(fx1,fy1); ctx.quadraticCurveTo(cpx,cpy,fx2,fy2);
+  ctx.strokeStyle = b.fuseActive ? '#ffaa00' : '#ffffff';
+  ctx.lineWidth=2.2; ctx.stroke();
 
-  // Flame at fuse end (animated)
-  const flicker = 0.8 + 0.2*Math.sin(now*18 + b.ph);
-  const fh = r * 1.3 * flicker;
-  const fw = r * 0.6 * flicker;
-  // Outer flame (orange)
-  ctx.save();
-  ctx.translate(fx2, fy2);
-  ctx.rotate(fa - Math.PI/2);
-  const fg1 = ctx.createRadialGradient(0, -fh*0.3, 0, 0, 0, fh);
-  fg1.addColorStop(0,'rgba(255,255,100,0.95)');
-  fg1.addColorStop(0.4,'rgba(255,140,0,0.85)');
-  fg1.addColorStop(1,'rgba(255,40,0,0)');
-  ctx.beginPath();
-  ctx.moveTo(0,0);
-  ctx.bezierCurveTo(-fw,-fh*0.4, -fw*1.1,-fh*0.8, 0,-fh);
-  ctx.bezierCurveTo(fw*1.1,-fh*0.8, fw,-fh*0.4, 0,0);
-  ctx.fillStyle=fg1; ctx.fill();
-  // Inner bright core
-  const fg2 = ctx.createRadialGradient(0,-fh*0.25,0,0,-fh*0.25,fw*0.5);
-  fg2.addColorStop(0,'rgba(255,255,200,1)');
-  fg2.addColorStop(1,'rgba(255,200,0,0)');
-  ctx.beginPath(); ctx.arc(0,-fh*0.25,fw*0.4,0,Math.PI*2);
-  ctx.fillStyle=fg2; ctx.fill();
+  // Flame — only when fuse active
+  if(b.fuseActive){
+    const flicker = 0.75 + 0.25*Math.sin(now*22 + b.ph);
+    const fh = r*1.3*flicker, fw = r*0.55*flicker;
+    ctx.save();
+    ctx.translate(fx2,fy2); ctx.rotate(fa - Math.PI/2);
+    const fg1 = ctx.createRadialGradient(0,-fh*0.3,0,0,0,fh);
+    fg1.addColorStop(0,'rgba(255,255,120,0.95)');
+    fg1.addColorStop(0.4,'rgba(255,140,0,0.88)');
+    fg1.addColorStop(1,'rgba(200,30,0,0)');
+    ctx.beginPath(); ctx.moveTo(0,0);
+    ctx.bezierCurveTo(-fw,-fh*0.4,-fw*1.1,-fh*0.8,0,-fh);
+    ctx.bezierCurveTo(fw*1.1,-fh*0.8,fw,-fh*0.4,0,0);
+    ctx.fillStyle=fg1; ctx.fill();
+    const fg2 = ctx.createRadialGradient(0,-fh*0.25,0,0,-fh*0.25,fw*0.5);
+    fg2.addColorStop(0,'rgba(255,255,220,1)'); fg2.addColorStop(1,'rgba(255,200,0,0)');
+    ctx.beginPath(); ctx.arc(0,-fh*0.25,fw*0.4,0,Math.PI*2); ctx.fillStyle=fg2; ctx.fill();
+    ctx.restore();
+  }
+
+  // Pulsing ring when fuse active
+  if(b.fuseActive){
+    ctx.beginPath(); ctx.arc(b.x,b.y,r+3+pulse*3,0,Math.PI*2);
+    ctx.strokeStyle=`rgba(255,120,0,${0.45+0.4*pulse})`;
+    ctx.lineWidth=2.2; ctx.stroke();
+  }
+
   ctx.restore();
 
   ctx.restore();
@@ -2050,36 +2184,28 @@ function drawBalls() {
     G.cue._roll += cs*0.05;
     draw3DBall(x, y, r, '#d8d8d8', null, G.cue._roll, G.cue._rollDir, 0, '#fff', now, 0);
 
-    // Spin indicator arc on cue ball (during aiming only)
-    const sx = G.spinX || (G.cue.spinX||0);
-    const sy = G.spinY || (G.cue.spinY||0);
+    // Spin indicator — subtle grey arc on the appropriate side of cue ball
+    // Use live spinX/Y only — not stored cue spin (which may be leftover)
+    const sx = G.spinX;
+    const sy = G.spinY;
     if(G.phase==='aiming' && (Math.abs(sx)>0.1 || Math.abs(sy)>0.1)){
-      ctx.save();
-      ctx.lineWidth=3; ctx.lineCap='round';
-      // Color: red=backspin, blue=topspin, yellow=sidespin
-      let spinColor, spinAngle, arcSpan=Math.PI*0.7;
+      // Determine which side the arc sits on
+      let arcAngle; // centre angle of the arc
       if(Math.abs(sy) >= Math.abs(sx)){
-        spinColor = sy > 0 ? '#ff3333' : '#3399ff'; // red=backspin, blue=topspin
-        spinAngle = sy > 0 ? Math.PI*0.5 : -Math.PI*0.5; // bottom arc / top arc
+        arcAngle = sy > 0 ? Math.PI*0.5 : -Math.PI*0.5; // B=bottom, T=top
       } else {
-        spinColor = '#ffcc00'; // yellow=sidespin
-        spinAngle = sx > 0 ? 0 : Math.PI; // right/left
+        arcAngle = sx > 0 ? 0 : Math.PI; // R=right, L=left
       }
-      ctx.strokeStyle = spinColor;
-      ctx.shadowBlur=6; ctx.shadowColor=spinColor;
-      ctx.globalAlpha=0.85;
+      const arcSpan = Math.PI * 0.65;
+      const arcR = r + 5; // just outside ball edge
+      ctx.save();
+      ctx.globalAlpha = 0.55;
       ctx.beginPath();
-      ctx.arc(x, y, r+4, spinAngle-arcSpan/2, spinAngle+arcSpan/2);
-      ctx.stroke();
-      // Arrow tip at end of arc
-      const tipX = x + Math.cos(spinAngle+arcSpan/2)*(r+4);
-      const tipY = y + Math.sin(spinAngle+arcSpan/2)*(r+4);
-      const tipAng = spinAngle+arcSpan/2+Math.PI/2;
-      ctx.beginPath();
-      ctx.moveTo(tipX, tipY);
-      ctx.lineTo(tipX-6*Math.cos(tipAng-0.4), tipY-6*Math.sin(tipAng-0.4));
-      ctx.moveTo(tipX, tipY);
-      ctx.lineTo(tipX-6*Math.cos(tipAng+0.4), tipY-6*Math.sin(tipAng+0.4));
+      ctx.arc(x, y, arcR, arcAngle - arcSpan/2, arcAngle + arcSpan/2);
+      ctx.strokeStyle = '#d8d8d8'; // same grey as cue ball
+      ctx.lineWidth = 2.5;
+      ctx.lineCap = 'round';
+      ctx.shadowBlur = 0;
       ctx.stroke();
       ctx.restore();
     }
@@ -2143,15 +2269,27 @@ function drawSpinPad() {
   c.fillStyle='rgba(0,0,0,0.35)';c.fill();
 }
 
+function updateFireLock() {
+  const btn = document.getElementById('fire-btn');
+  if(!btn) return;
+  const locked = G.phase === 'rolling'; // locked while balls are still rolling
+  btn.style.opacity = locked ? '0.4' : '1';
+  btn.style.background = locked ? '#555' : '#ff6b00';
+  btn.textContent = locked ? 'WAIT...' : 'FIRE';
+}
+
 function refreshStrip() {
   const strip=document.getElementById('bomb-strip');strip.innerHTML='';
   const alive=G.balls.filter(b=>!b.potted&&!b.exploded);
   for(const b of alive){
     const chip=document.createElement('div');chip.className='bomb-chip';
-    const dot=document.createElement('div');dot.className='bomb-dot';dot.style.background=b.color;
+    const dot=document.createElement('div');dot.className='bomb-dot';
+    dot.style.background = b.isDanger ? (b.fuseActive ? '#ff4400' : '#e8e8e0') : b.color;
+    if(b.isDanger) dot.style.border = '1px solid #666';
     const tm=document.createElement('span');
-    if(b.isBomb){
-      const t2=Math.max(0,b.timer);
+    if(b.isDanger && b.fuseActive){
+      // Show angry ball fuse countdown
+      const t2=Math.max(0,b.fuseTimer);
       tm.textContent=t2.toFixed(1)+'s';
       tm.className=t2<10?'t-danger':t2<25?'t-warn':'t-safe';
     } else {
@@ -2167,6 +2305,8 @@ let lastTs=0;
 function loop(ts){
   const dt=Math.min((ts-lastTs)/1000,.05);lastTs=ts;
   if(G.phase!=='exploding') physics();
+  // updateFireLock every frame so FIRE button reflects current state
+  if(G.cue) updateFireLock();
   tickTimers(dt);tickParticles(dt);
   if(G.shake>0)G.shake-=dt;
   if(G.explosion) G.explosion.t = Math.min(G.explosion.t+dt, G.explosion.maxT);
@@ -2490,6 +2630,7 @@ function applyLayout() {
     }
     const tb = document.getElementById('topbar');
     if(tb) tb.style.gridArea='topbar';
+
   } else {
     app.classList.remove('desktop-mode');
     app.style.display = 'flex';
