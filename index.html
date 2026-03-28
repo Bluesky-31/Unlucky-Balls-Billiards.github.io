@@ -331,18 +331,18 @@ border:1px solid rgba(255,80,80,0.35);">
       <div><div class="set-row-label">No Time Limit</div><div class="set-row-desc">Beginner friendly — bombs don't tick down</div></div>
       <label class="toggle"><input type="checkbox" id="set-timer" checked onchange="saveSetting('timer',this.checked)"><div class="toggle-track"></div></label>
     </div>
-    <div class="set-row">
-      <div><div class="set-row-label">Show Ball Path</div><div class="set-row-desc">Forecast line shows cue ball trajectory</div></div>
-      <label class="toggle"><input type="checkbox" id="set-ballpath" checked onchange="saveSetting('ballpath',this.checked)"><div class="toggle-track"></div></label>
-    </div>
-    <div class="set-row">
-      <div><div class="set-row-label">Sudden Death</div><div class="set-row-desc">Scratch into pocket = lose the round</div></div>
-      <label class="toggle"><input type="checkbox" id="set-suddendeath" onchange="saveSetting('suddendeath',this.checked)"><div class="toggle-track"></div></label>
-    </div>
-    <div class="set-row">
-      <div><div class="set-row-label">Early Angry Balls</div><div class="set-row-desc">Angry balls appear 2 levels sooner</div></div>
-      <label class="toggle"><input type="checkbox" id="set-earlybombs" onchange="saveSetting('earlybombs',this.checked)"><div class="toggle-track"></div></label>
-    </div>
+
+```
+<div class="set-row">
+  <div><div class="set-row-label">Sudden Death</div><div class="set-row-desc">Scratch into pocket = lose the round</div></div>
+  <label class="toggle"><input type="checkbox" id="set-suddendeath" onchange="saveSetting('suddendeath',this.checked)"><div class="toggle-track"></div></label>
+</div>
+<div class="set-row">
+  <div><div class="set-row-label">Early Angry Balls</div><div class="set-row-desc">Angry balls appear 2 levels sooner</div></div>
+  <label class="toggle"><input type="checkbox" id="set-earlybombs" onchange="saveSetting('earlybombs',this.checked)"><div class="toggle-track"></div></label>
+</div>
+```
+
   </div>
 
   <!-- CUSTOMISE -->
@@ -418,6 +418,7 @@ border:1px solid rgba(255,80,80,0.35);">
       <div class="stat"><span class="stat-label">LVL</span><span class="stat-value" id="s-lvl">1</span></div>
       <div class="stat"><span class="stat-label">SCORE</span><span class="stat-value" id="s-score">0</span></div>
       <div class="stat"><span class="stat-label">LEFT</span><span class="stat-value" id="s-left">0</span></div>
+      <div class="stat"><span class="stat-label">TIME</span><span class="stat-value" id="s-time" style="color:#00ff88">–</span></div>
       <div class="stat"><span class="stat-label">LIVES</span><span class="stat-value" id="s-lives">❤️❤️❤️</span></div>
       <div class="stat"><span class="stat-label">DIFF</span><span class="stat-value" id="s-diff" style="color:#ff6b00">NRM</span></div>
     </div>
@@ -540,7 +541,6 @@ function onDesignToggle(key, val) {
 function openSettings() {
   // Sync UI to current settings
   document.getElementById('set-timer').checked       = settings.timer;
-  document.getElementById('set-ballpath').checked    = settings.ballpath;
   document.getElementById('set-suddendeath').checked = settings.suddendeath;
   document.getElementById('set-earlybombs').checked  = settings.earlybombs;
   // mobile mode toggle is on home screen, not settings
@@ -599,7 +599,6 @@ function launchGame() {
   document.getElementById('s-diff').textContent = DIFF_LABELS[difficulty];
   if(difficulty === 'practice'){
     // Practice mode: empty table, no timers, no scoring
-    settings.ballpath = true;
     settings.timer    = false;
     G.score=0; G.level=1; G.lives=99;
     updateLivesDisplay();
@@ -608,25 +607,21 @@ function launchGame() {
   }
   // Apply pre-set settings per difficulty
   if(difficulty === 'easy'){
-    settings.ballpath    = true;
     settings.suddendeath = false;
     settings.earlybombs  = false;
     settings.timer       = true;
     G.lives = 3;
   } else if(difficulty === 'normal'){
-    settings.ballpath    = false;
     settings.suddendeath = true;
     settings.earlybombs  = false;
     settings.timer       = false;
     G.lives = 2;
   } else if(difficulty === 'hard'){
-    settings.ballpath    = false;
     settings.suddendeath = true;
     settings.earlybombs  = true;
     settings.timer       = false;
     G.lives = 1;
   } else if(difficulty === 'expert'){
-    settings.ballpath    = false;
     settings.suddendeath = true;
     settings.earlybombs  = true;
     settings.timer       = false;
@@ -677,7 +672,7 @@ function updateLivesDisplay() {
 // Easy:   starts 3 balls/60s, +1 ball +10s per level, cap level 10 (12 balls/150s)
 // Normal: starts 4 balls/60s, +1 ball +9s  per level, cap level 10 (13 balls/141s)
 // Hard:   starts 5 balls/60s, +1 ball +8s  per level, cap level 10 (14 balls/132s)
-const MAX_LEVEL = 10;
+const MAX_LEVEL = 20;
 
 function getLevelData(lvl) {
   const capped = Math.min(lvl, MAX_LEVEL) - 1; // 0-indexed offset
@@ -1471,20 +1466,33 @@ function physics() {
 // ── Timers ─────────────────────────────────────────────────────────────────
 function tickTimers(dt) {
   if(G.phase!=='aiming'&&G.phase!=='rolling') return;
+  let minTime = Infinity;
   for(const b of G.balls){
     if(b.potted||b.exploded) continue;
     if(!b.isBomb) continue;
     if(b.isDanger){
-      // Angry ball: only tick fuseTimer after fuse is lit
       if(b.fuseActive){
         b.fuseTimer -= dt;
         if(b.fuseTimer <= 0) explodeBall(b);
+        if(b.fuseTimer < minTime) minTime = b.fuseTimer;
       }
     } else {
-      // Regular timed bomb
-      if(!settings.timer) continue; // Beginner mode — no time limit
+      if(!settings.timer) continue;
       b.timer -= dt;
       if(b.timer <= 0) explodeBall(b);
+      if(b.timer < minTime) minTime = b.timer;
+    }
+  }
+  // Update TIME display
+  const timeEl = document.getElementById('s-time');
+  if(timeEl){
+    if(minTime === Infinity || settings.timer){
+      timeEl.textContent = '–';
+      timeEl.style.color = '#00ff88';
+    } else {
+      const secs = Math.ceil(Math.max(0, minTime));
+      timeEl.textContent = secs + 's';
+      timeEl.style.color = secs <= 10 ? '#ff2a2a' : secs <= 30 ? '#ffaa00' : '#00ff88';
     }
   }
   refreshStrip();
@@ -2104,18 +2112,7 @@ function drawAimLine() {
     ctx.beginPath(); ctx.arc(ghostX, ghostY, r, 0, Math.PI*2);
     ctx.strokeStyle='rgba(255,255,255,0.5)'; ctx.lineWidth=1.5; ctx.stroke();
 
-    // Target ball travel line — full table-crossing length for clear direction
-    const forecastLen = Math.min(T.iw, T.ih) * 0.65;
-    const ex = b.x + tnx * forecastLen;
-    const ey = b.y + tny * forecastLen;
-
-    if(settings.ballpath){
-      ctx.setLineDash([8, 6]);
-      ctx.strokeStyle='rgba(255,255,255,0.5)';
-      ctx.lineWidth=2;
-      ctx.beginPath(); ctx.moveTo(b.x, b.y); ctx.lineTo(ex, ey); ctx.stroke();
-      ctx.setLineDash([]);
-    }
+    // Target ball travel line disabled — not accurate enough
   }
 
   ctx.restore();
