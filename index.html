@@ -574,6 +574,7 @@ let difficulty = 'normal';
 
 function selectDiff(d) {
   difficulty = d;
+  Audio.playMenu();
   document.querySelectorAll('.diff-btn').forEach(b => {
     b.classList.remove('active');
     if(b.id==='d-practice'){ b.style.borderColor=''; b.style.color=''; b.style.background=''; }
@@ -659,6 +660,7 @@ function goHome() {
   document.getElementById('home').classList.remove('hidden');
   G.phase = 'idle';
   G.cue = null; G.balls = [];
+  Audio.playMenu();
 }
 
 function updateLivesDisplay() {
@@ -953,6 +955,7 @@ function startLevel() {
   resizeCanvas();
   const lvl  = getLevelData(G.level);
   G.balls=[]; G.particles=[]; G.combo=0; G.explosion=null; G.phase='idle'; G._scratchedThisLevel=false; G._levelStartTime=Date.now(); updateLivesDisplay();
+  Audio.playGame(false);
 
   G.cue = T.isPortrait
     ? {x:T.ix+Math.round(T.iw/2),   y:T.iy+Math.round(T.ih*0.75), vx:0,vy:0,r:BALL_R}
@@ -1237,7 +1240,7 @@ function shoot() {
   G.cue.spinX = G.spinX; // sidespin
   G.cue.spinY = G.spinY; // top/backspin
   G.cue._distTravelled = 0; // reset distance for spin delay
-  G.phase='rolling'; G.combo=0;
+  G.phase='rolling'; G.combo=0; G._pottedThisShot=false;
   G.spinX=0; G.spinY=0;
 }
 
@@ -1332,7 +1335,9 @@ function moveBall(ball,isCue) {
       } else {
         ball.potted=true; G.combo++;
         let pts = 100*G.combo;
-        // 1-hit sink bonus: ball was never touched before this shot
+        Audio.sfxPotted(G.combo);
+        if(G.combo >= 3) Audio.sfxCheer();
+        else if(G.combo === 2) Audio.sfxClap();
         if(ball.neverHit){
           pts *= 2;
           showCombo(ball.x,ball.y,G.combo,pts,'⚡1-HIT!');
@@ -1340,6 +1345,7 @@ function moveBall(ball,isCue) {
           showCombo(ball.x,ball.y,G.combo,pts);
         }
         G.score+=pts;
+        G._pottedThisShot=true;
         refreshStrip();
         checkEnd();
       }
@@ -1360,6 +1366,7 @@ function resolveBB(a,b) {
   if(dvn>0){
     a.vx-=dvn*nx;a.vy-=dvn*ny;
     b.vx+=dvn*nx;b.vy+=dvn*ny;
+    if(a===G.cue||b===G.cue) Audio.sfxBallHit(dvn > 8);
     // ── Spin effects after cue ball contacts object ball ─────────────────────
     // spinY = -1 → TOPSPIN  (T): cue follows forward (follow shot)
     // spinY = +1 → BACKSPIN (B): cue draws back (draw/stun shot)
@@ -1454,6 +1461,9 @@ function physics() {
     active.forEach(b=>{ b.vx=0; b.vy=0; });
     G.cue._showCue = true;
     G.phase='aiming';
+    // Miss sound if no balls were potted this shot
+    if(!G._pottedThisShot) Audio.sfxMiss();
+    G._pottedThisShot = false;
     if(G._practiceMode){
       // Practice: silently reset cue ball to centre after each shot
       G.cue.vx=0; G.cue.vy=0; G.cue._distTravelled=0;
@@ -1483,6 +1493,8 @@ function tickTimers(dt) {
       if(b.timer < minTime) minTime = b.timer;
     }
   }
+  // Tension music when any bomb is critically low
+  Audio.setTension(minTime !== Infinity && minTime < 15 && !settings.timer);
   // Update TIME display
   const timeEl = document.getElementById('s-time');
   if(timeEl){
@@ -1535,6 +1547,7 @@ function checkEnd() {
     if(G.level>=MAX_LEVEL){
       showRankings(true);
     } else {
+      Audio.sfxLevelClear();
       showOver('CLEARED!','Level '+G.level+' done! +'+bonus+' pts'+bonusMsg,false);
       G.level++;
     }
@@ -1590,6 +1603,7 @@ function triggerLoss(x, y) {
     const a=(i/ring)*Math.PI*2, s=spd*0.6+Math.random()*spd*0.4;
     G.particles.push({x,y,vx:Math.cos(a)*s,vy:Math.sin(a)*s,life:0.8,r:2+Math.random()*3,color:i%2===0?'#ffcc00':'#ff4400'});
   }
+  Audio.sfxExplosion();
   G.explosion = { x, y, t:0, maxT:2.2 };
   setTimeout(()=>{
     G.lives--;
@@ -1614,6 +1628,8 @@ function triggerLoss(x, y) {
 
 function showRankings(champion) {
   G.phase='idle';
+  if(champion) Audio.sfxLevelClear(); else Audio.sfxGameOver();
+  Audio.playMenu();
   const entry = { score:G.score, level:G.level, diff:difficulty, name:'YOU', date:new Date().toLocaleDateString() };
   const allScores = saveScore(entry);
 
@@ -2782,6 +2798,233 @@ requestAnimationFrame(() => {
   resizeCanvas();
   requestAnimationFrame(ts=>{lastTs=ts;requestAnimationFrame(loop);});
 });
+
+// ══════════════════════════════════════════════════════════════════
+// AUDIO ENGINE — Web Audio API, zero external files
+// ══════════════════════════════════════════════════════════════════
+const Audio = (() => {
+  let ctx = null, musicNodes = {}, musicPlaying = null, tensionActive = false;
+
+  function getCtx() {
+    if(!ctx) ctx = new (window.AudioContext||window.webkitAudioContext)();
+    if(ctx.state === 'suspended') ctx.resume();
+    return ctx;
+  }
+
+  // ── Utility: simple envelope ────────────────────────────────────
+  function env(gain, t, atk, dec, sus, rel) {
+    const now = t || getCtx().currentTime;
+    gain.setValueAtTime(0, now);
+    gain.linearRampToValueAtTime(1, now + atk);
+    gain.linearRampToValueAtTime(sus, now + atk + dec);
+    return now + atk + dec + rel;
+  }
+
+  function playTone(freq, type, vol, atk, dec, sus, rel, when) {
+    const c = getCtx();
+    const t = when || c.currentTime;
+    const osc = c.createOscillator();
+    const g   = c.createGain();
+    osc.type = type; osc.frequency.setValueAtTime(freq, t);
+    g.gain.setValueAtTime(0, t);
+    g.gain.linearRampToValueAtTime(vol, t + atk);
+    g.gain.linearRampToValueAtTime(vol * sus, t + atk + dec);
+    g.gain.linearRampToValueAtTime(0, t + atk + dec + rel);
+    osc.connect(g); g.connect(c.destination);
+    osc.start(t); osc.stop(t + atk + dec + rel + 0.05);
+  }
+
+  function noise(vol, dur, freq1, freq2, when) {
+    const c = getCtx();
+    const t = when || c.currentTime;
+    const buf = c.createBuffer(1, c.sampleRate * dur, c.sampleRate);
+    const d = buf.getChannelData(0);
+    for(let i=0;i<d.length;i++) d[i] = Math.random()*2-1;
+    const src = c.createBufferSource();
+    const flt = c.createBiquadFilter();
+    const g   = c.createGain();
+    src.buffer = buf;
+    flt.type = 'bandpass'; flt.frequency.setValueAtTime(freq1, t);
+    if(freq2) flt.frequency.linearRampToValueAtTime(freq2, t + dur);
+    flt.Q.value = 2;
+    g.gain.setValueAtTime(vol, t);
+    g.gain.linearRampToValueAtTime(0, t + dur);
+    src.connect(flt); flt.connect(g); g.connect(c.destination);
+    src.start(t); src.stop(t + dur + 0.01);
+  }
+
+  // ── Sound effects ───────────────────────────────────────────────
+  function sfxBallHit(hard) {
+    const v = hard ? 0.5 : 0.3;
+    noise(v, 0.06, 2000, 800);
+    playTone(hard ? 180 : 120, 'sine', v*0.4, 0.001, 0.04, 0, 0.05);
+  }
+
+  function sfxPotted(combo) {
+    // Satisfying "plop" + rising tone
+    noise(0.3, 0.08, 600, 200);
+    const freqs = [440, 523, 659, 784, 1046];
+    const f = freqs[Math.min(combo-1, 4)];
+    playTone(f, 'sine', 0.35, 0.005, 0.05, 0.6, 0.18);
+    playTone(f*1.5, 'sine', 0.15, 0.01, 0.04, 0.4, 0.15);
+  }
+
+  function sfxMiss() {
+    // Descending "awww" — two voices sliding down
+    const c = getCtx(), t = c.currentTime;
+    for(let i=0;i<2;i++){
+      const osc = c.createOscillator();
+      const g   = c.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(350 - i*40, t + 0.05);
+      osc.frequency.linearRampToValueAtTime(180 - i*20, t + 0.7);
+      g.gain.setValueAtTime(0, t);
+      g.gain.linearRampToValueAtTime(0.18, t + 0.08);
+      g.gain.linearRampToValueAtTime(0, t + 0.7);
+      osc.connect(g); g.connect(c.destination);
+      osc.start(t); osc.stop(t + 0.75);
+    }
+  }
+
+  function sfxClap() {
+    // Quick clap: shaped noise burst
+    noise(0.5, 0.04, 1500, 3000);
+    noise(0.3, 0.03, 2500, 4000, getCtx().currentTime + 0.015);
+  }
+
+  function sfxCheer() {
+    // Crowd cheer: many noise bursts + ascending tones
+    const c = getCtx(), t = c.currentTime;
+    for(let i=0;i<6;i++){
+      noise(0.25, 0.12 + i*0.04, 800 + i*200, 1200 + i*300, t + i*0.04);
+    }
+    [523, 659, 784, 1046].forEach((f, i) => {
+      playTone(f, 'sawtooth', 0.08, 0.02, 0.06, 0.5, 0.15, t + i*0.06);
+    });
+  }
+
+  function sfxLevelClear() {
+    // Triumphant fanfare sting
+    const notes = [523, 659, 784, 1046, 1318];
+    notes.forEach((f, i) => {
+      playTone(f, 'sawtooth', 0.22, 0.01, 0.05, 0.7, 0.2, getCtx().currentTime + i*0.1);
+      playTone(f*0.5, 'sine', 0.12, 0.01, 0.05, 0.7, 0.2, getCtx().currentTime + i*0.1);
+    });
+  }
+
+  function sfxExplosion() {
+    noise(0.8, 0.5, 80, 40);
+    noise(0.5, 0.3, 200, 60, getCtx().currentTime + 0.02);
+    playTone(60, 'sine', 0.6, 0.01, 0.15, 0, 0.4);
+  }
+
+  function sfxGameOver() {
+    // Descending loss sound
+    const notes = [392, 349, 294, 220];
+    notes.forEach((f, i) => {
+      playTone(f, 'sawtooth', 0.2, 0.02, 0.08, 0.5, 0.25, getCtx().currentTime + i*0.22);
+    });
+  }
+
+  function sfxBombTick() {
+    playTone(880, 'square', 0.08, 0.001, 0.01, 0, 0.02);
+  }
+
+  // ── Music engine ────────────────────────────────────────────────
+  let musicGain = null, beatInterval = null, arpeggioInterval = null;
+  let currentTheme = null, bpm = 140;
+
+  const MENU_CHORDS  = [[261,329,392],[293,369,440],[329,415,493],[261,329,392]];
+  const GAME_BASS    = [65, 65, 73, 65, 61, 65, 68, 65];
+  const GAME_LEAD    = [523,659,784,659, 698,784,880,784, 523,659,784,659, 440,523,659,523];
+  const TENSE_LEAD   = [880,988,1047,988, 880,831,880,831];
+
+  function stopMusic() {
+    if(beatInterval) clearInterval(beatInterval);
+    if(arpeggioInterval) clearInterval(arpeggioInterval);
+    beatInterval = null; arpeggioInterval = null;
+    currentTheme = null; tensionActive = false;
+  }
+
+  function playMenu() {
+    if(currentTheme === 'menu') return;
+    stopMusic();
+    currentTheme = 'menu';
+    bpm = 88;
+    let chordIdx = 0;
+    arpeggioInterval = setInterval(() => {
+      try {
+        getCtx();
+        const chord = MENU_CHORDS[chordIdx % MENU_CHORDS.length];
+        const beat = 60000/bpm/1000;
+        chord.forEach((f,i) => {
+          playTone(f, 'sine', 0.06, 0.01, 0.1, 0.6, beat*0.8, getCtx().currentTime + i*beat*0.25);
+          playTone(f*2, 'triangle', 0.025, 0.01, 0.08, 0.4, beat*0.6, getCtx().currentTime + i*beat*0.25);
+        });
+        // Bass note
+        playTone(chord[0]*0.5, 'sawtooth', 0.06, 0.02, 0.1, 0.5, beat);
+        if(chordIdx % 2 === 0) noise(0.04, 0.03, 3000, 2000); // hi-hat
+        chordIdx++;
+      } catch(e){}
+    }, 60000/bpm);
+  }
+
+  function playGame(tension) {
+    const theme = tension ? 'tense' : 'game';
+    if(currentTheme === theme) return;
+    stopMusic();
+    currentTheme = theme;
+    bpm = tension ? 175 : 145;
+    const lead = tension ? TENSE_LEAD : GAME_LEAD;
+    let step = 0;
+
+    beatInterval = setInterval(() => {
+      try {
+        const c = getCtx();
+        const beat = 60000/bpm/1000;
+        const t = c.currentTime;
+
+        // Bass drum
+        if(step % 4 === 0){ noise(0.35, 0.12, 80, 40, t); playTone(60, 'sine', 0.4, 0.001, 0.08, 0, 0.15, t); }
+        // Snare
+        if(step % 4 === 2){ noise(0.28, 0.08, 1000, 3000, t); }
+        // Hi-hat every step
+        noise(0.06, 0.02, 6000, 8000, t);
+        // Open hi-hat on offbeats
+        if(step % 2 === 1){ noise(0.04, 0.06, 5000, 7000, t); }
+        // Bass line (every 2 steps)
+        if(step % 2 === 0){
+          const bass = GAME_BASS[(step/2) % GAME_BASS.length];
+          playTone(bass, 'sawtooth', 0.14, 0.005, 0.05, 0.6, beat*1.5, t);
+        }
+        // Lead melody
+        const lf = lead[step % lead.length];
+        playTone(lf, 'square', 0.06, 0.005, 0.03, 0.5, beat*0.7, t);
+        playTone(lf*0.5, 'sawtooth', 0.03, 0.005, 0.03, 0.4, beat*0.7, t);
+
+        step++;
+      } catch(e){}
+    }, 60000/bpm/2); // 8th note steps
+  }
+
+  function setTension(on) {
+    if(tensionActive === on) return;
+    tensionActive = on;
+    if(currentTheme === 'game' || currentTheme === 'tense') playGame(on);
+  }
+
+  return {
+    sfxBallHit, sfxPotted, sfxMiss, sfxClap, sfxCheer,
+    sfxLevelClear, sfxExplosion, sfxGameOver, sfxBombTick,
+    playMenu, playGame, setTension, stopMusic,
+    init() { try { getCtx(); } catch(e){} }
+  };
+})();
+
+// ── Hook audio to user interaction (required by browsers) ────────────────────
+document.addEventListener('click', () => Audio.init(), {once: true});
+document.addEventListener('touchstart', () => Audio.init(), {once: true});
+
 </script>
 
 </body>
