@@ -2088,29 +2088,32 @@ function drawAimLine() {
   if(hit.type==='ball'){
     const b=hit.ball;
 
-    // Ghost ball outline at contact position
-    ctx.beginPath();ctx.arc(hit.x,hit.y,r,0,Math.PI*2);
-    ctx.strokeStyle='rgba(255,255,255,0.45)';ctx.lineWidth=1.5;ctx.stroke();
+    // Recompute ghost ball position precisely:
+    // Ghost cue centre = target ball centre minus (r + b.r) along the aim direction
+    // This is more accurate than the ray hit position for the forecast line
+    const rawDx = b.x - hit.x, rawDy = b.y - hit.y;
+    const rawD  = Math.hypot(rawDx, rawDy) || 1;
+    const tnx   = rawDx / rawD; // unit vector: ghost→target = target ball travel direction
+    const tny   = rawDy / rawD;
 
-    // Target ball direction: unit vector from ghost-cue-centre → target-ball-centre
-    // This is physically correct: in elastic collision, target travels along this line
-    const tdx = b.x - hit.x;
-    const tdy = b.y - hit.y;
-    const td  = Math.hypot(tdx, tdy) || 1;
-    const tnx = tdx / td;
-    const tny = tdy / td;
+    // Precise ghost cue position
+    const ghostX = b.x - tnx * (r + b.r);
+    const ghostY = b.y - tny * (r + b.r);
 
-    // Draw full forecast line across the table so direction is clearly visible
-    const forecastLen = Math.min(T.iw, T.ih) * 0.55;
+    // Draw ghost ball at precise contact position
+    ctx.beginPath(); ctx.arc(ghostX, ghostY, r, 0, Math.PI*2);
+    ctx.strokeStyle='rgba(255,255,255,0.5)'; ctx.lineWidth=1.5; ctx.stroke();
+
+    // Target ball travel line — full table-crossing length for clear direction
+    const forecastLen = Math.min(T.iw, T.ih) * 0.65;
     const ex = b.x + tnx * forecastLen;
     const ey = b.y + tny * forecastLen;
 
-    // Dashed line — only if ball path is enabled
     if(settings.ballpath){
       ctx.setLineDash([8, 6]);
-      ctx.strokeStyle='rgba(255,255,255,0.45)';
-      ctx.lineWidth=1.8;
-      ctx.beginPath();ctx.moveTo(b.x,b.y);ctx.lineTo(ex,ey);ctx.stroke();
+      ctx.strokeStyle='rgba(255,255,255,0.5)';
+      ctx.lineWidth=2;
+      ctx.beginPath(); ctx.moveTo(b.x, b.y); ctx.lineTo(ex, ey); ctx.stroke();
       ctx.setLineDash([]);
     }
   }
