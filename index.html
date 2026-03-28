@@ -255,18 +255,19 @@ overflow-y:auto;background:#0e0e0e;width:100%;height:100%;
 <!-- HOME SCREEN -->
 
 <div id="home">
-  <div id="home-title">LUCKY BALLS<br>BILLIARDS</div>
+  <div id="home-title">💣 LUCKY BALLS<br>BILLIARDS 💣</div>
   <div id="home-sub">💣 &nbsp; pocket balls, dodge the bombs</div>
   <div class="diff-label">Select Difficulty</div>
   <div class="diff-btns">
     <button class="diff-btn" id="d-easy"   onclick="selectDiff('easy')">EASY</button>
     <button class="diff-btn active" id="d-normal" onclick="selectDiff('normal')">NORMAL</button>
     <button class="diff-btn" id="d-hard"   onclick="selectDiff('hard')">HARD</button>
+    <button class="diff-btn" id="d-expert" onclick="selectDiff('expert')">💀 EXPERT</button>
     <button class="diff-btn" id="d-practice" onclick="selectDiff('practice')">🎯 PRACTICE</button>
   </div>
   <div id="home-desc">Normal speed. Standard ball count per level.</div>
   <div style="display:flex;gap:12px;margin-top:4px;">
-    <button id="home-start" onclick="launchGame()">LIGHT FUSE</button>
+    <button id="home-start" onclick="launchGame()">💣 LIGHT FUSE</button>
     <button onclick="openSettings()" style="font-family:'Black Ops One',Impact,'Arial Black',fantasy,cursive;font-size:.9rem;letter-spacing:2px;padding:14px 22px;background:transparent;border:2px solid #333;border-radius:8px;color:#666;cursor:pointer;">⚙ SETTINGS</button>
   </div>
   <div style="display:flex;align-items:center;gap:14px;margin-top:18px;background:rgba(255,255,255,0.06);border:1px solid #333;border-radius:10px;padding:12px 18px;">
@@ -316,7 +317,7 @@ border:1px solid rgba(255,80,80,0.35);">
   <div style="margin-bottom:10px;">Tap T/B/L/R on the spin pad · kicks in mid-table · resets after each shot</div>
 
   <div style="color:#ff6b00;font-size:.62rem;letter-spacing:2px;margin-bottom:5px;">❤️ LIVES &amp; SCORING</div>
-  <div>Easy 3 lives · Normal 2 · Hard 1 · Combos multiply your points</div>
+  <div>Easy 3 lives · Normal 2 · Hard/Expert 1 · Combos multiply · 1-hit sinks score double · clear fast for time bonus · no scratch = perfect bonus</div>
 </div>
 ```
 
@@ -460,12 +461,13 @@ border:1px solid rgba(255,80,80,0.35);">
 <script>
 // ── Difficulty ────────────────────────────────────────────────────────────
 const DIFF_DESCS = {
-  easy:     'Extra time (+50%) and fewer balls per level.',
-  normal:   'Normal speed. Standard ball count per level.',
-  hard:     'Same time but 20% more balls per level. Good luck.',
+  easy:     'Extra time and fewer balls. Ball path shown. No sudden death.',
+  normal:   'Standard balls and time. Sudden death on scratch.',
+  hard:     'More balls, less time. Early angry balls. Sudden death.',
+  expert:   'Maximum balls, minimum time. 1 life. Early angry balls. No mercy.',
   practice: 'Empty table. No balls, no timers. Practice spin, power and angles freely.'
 };
-const DIFF_LABELS = { easy:'EZ', normal:'NRM', hard:'HRD', practice:'PRX' };
+const DIFF_LABELS = { easy:'EZ', normal:'NRM', hard:'HRD', expert:'XPT', practice:'PRX' };
 
 // ── Settings state ─────────────────────────────────────────────────────────
 const FELT_COLORS = {
@@ -574,8 +576,8 @@ function selectDiff(d) {
   difficulty = d;
   document.querySelectorAll('.diff-btn').forEach(b => {
     b.classList.remove('active');
-    // restore practice button colour when deselected
     if(b.id==='d-practice'){ b.style.borderColor=''; b.style.color=''; b.style.background=''; }
+    if(b.id==='d-expert'){ b.style.borderColor=''; b.style.color=''; b.style.background=''; }
   });
   const btn = document.getElementById('d-'+d);
   btn.classList.add('active');
@@ -583,6 +585,9 @@ function selectDiff(d) {
   if(d==='practice'){
     btn.style.borderColor='#66aaff'; btn.style.color='#66aaff';
     btn.style.background='rgba(68,136,204,0.15)';
+  } else if(d==='expert'){
+    btn.style.borderColor='#ff3333'; btn.style.color='#ff4444';
+    btn.style.background='rgba(180,30,30,0.15)';
   } else {
     btn.style.borderColor=''; btn.style.color=''; btn.style.background='';
   }
@@ -601,15 +606,35 @@ function launchGame() {
     startPractice();
     return;
   }
-  if (difficulty === 'easy') {
+  // Apply pre-set settings per difficulty
+  if(difficulty === 'easy'){
     settings.ballpath    = true;
     settings.suddendeath = false;
-  } else {
+    settings.earlybombs  = false;
+    settings.timer       = true;
+    G.lives = 3;
+  } else if(difficulty === 'normal'){
     settings.ballpath    = false;
     settings.suddendeath = true;
+    settings.earlybombs  = false;
+    settings.timer       = false;
+    G.lives = 2;
+  } else if(difficulty === 'hard'){
+    settings.ballpath    = false;
+    settings.suddendeath = true;
+    settings.earlybombs  = true;
+    settings.timer       = false;
+    G.lives = 1;
+  } else if(difficulty === 'expert'){
+    settings.ballpath    = false;
+    settings.suddendeath = true;
+    settings.earlybombs  = true;
+    settings.timer       = false;
+    G.lives = 1;
   }
   G.score = 0; G.level = 1;
-  G.lives = difficulty === 'easy' ? 3 : difficulty === 'hard' ? 1 : 2;
+  G._shotsSinceHit = {}; // track first-hit for bonus
+  G._levelStartTime = Date.now();
   updateLivesDisplay();
   startLevel();
 }
@@ -663,6 +688,9 @@ function getLevelData(lvl) {
   } else if (difficulty === 'hard') {
     n = 5 + capped;
     t = 100 + capped * 8;
+  } else if (difficulty === 'expert') {
+    n = 7 + capped; // 2 more balls than hard
+    t = 90  + capped * 7; // less time
   } else {
     n = 4 + capped;
     t = 100 + capped * 9;
@@ -761,8 +789,8 @@ function placeBalls(n, lvl, hasBombs) {
   // Cue ball reference
   const cueX = G.cue.x, cueY = G.cue.y;
 
-  // Pattern varies by level
-  const pattern = ((lvl - 1) % 6);
+  // Each level has its own recognizable formation (patterns 0-9 map to levels 1-10)
+  const pattern = (lvl - 1) % 10;
   const candidates = generateCandidates(n, pattern, cueX, cueY);
 
   for (let i = 0; i < candidates.length && balls.length < n; i++) {
@@ -790,79 +818,146 @@ function placeBalls(n, lvl, hasBombs) {
 
 function generateCandidates(n, pattern, cueX, cueY) {
   const pts = [];
-  const cx = (T.ix+T.right)/2, cy = (T.iy+T.bottom)/2;
-  const hw = T.iw/2 - BALL_R*3, hh = T.ih/2 - BALL_R*3;
+  const sp = BALL_R * 2.35; // standard spacing between ball centres
+  const cx = T.ix + T.iw/2;
+  const cy = T.iy + T.ih * (T.isPortrait ? 0.38 : 0.5); // target half of table
+  const hw = T.iw/2 - BALL_R*3;
+  const hh = T.ih/2 - BALL_R*3;
 
-  if (pattern === 0) {
-    // Triangle rack (portrait: vertical, landscape: horizontal)
-    const spacing = BALL_R*2.4;
-    if (T.isPortrait) {
-      let py = T.iy + T.ih*0.35;
-      let row = 1;
-      while (pts.length < n*3) {
-        const rowW = (row-1)*spacing;
-        for (let c=0;c<row;c++) pts.push({x: cx - rowW/2 + c*spacing, y: py});
-        py += spacing*0.87; row++;
-        if (row > 5) break;
+  // ── Pattern 0: Classic TRIANGLE (apex pointing toward cue) ──────────────
+  if(pattern === 0){
+    // Rows: 1,2,3,4,5 — apex at top (portrait) or left (landscape)
+    if(T.isPortrait){
+      let py = T.iy + T.ih*0.28;
+      for(let row=1;row<=5;row++){
+        for(let c=0;c<row;c++) pts.push({x:cx-(row-1)*sp/2+c*sp, y:py});
+        py += sp*0.866;
       }
     } else {
-      let px = T.ix + T.iw*0.55;
-      let row = 1;
-      while (pts.length < n*3) {
-        const rowH = (row-1)*spacing;
-        for (let c=0;c<row;c++) pts.push({x:px, y: cy - rowH/2 + c*spacing});
-        px += spacing*0.87; row++;
-        if (row > 5) break;
+      let px = T.ix + T.iw*0.52;
+      for(let row=1;row<=5;row++){
+        for(let c=0;c<row;c++) pts.push({x:px, y:cy-(row-1)*sp/2+c*sp});
+        px += sp*0.866;
       }
     }
-  } else if (pattern === 1) {
-    // Spread evenly across table
-    for (let i=0;i<n*4;i++) {
-      const angle = (i/n)*Math.PI*2 + i*0.3;
-      const r = 0.3 + (i%3)*0.2;
-      pts.push({x: cx + Math.cos(angle)*hw*r, y: cy + Math.sin(angle)*hh*r});
-    }
-  } else if (pattern === 2) {
-    // Diagonal line
-    for (let i=0;i<n*3;i++) {
-      const t2 = i/(n*3-1);
-      pts.push({x: T.ix+BALL_R*3 + t2*(T.iw-BALL_R*6), y: T.iy+BALL_R*3 + t2*(T.ih-BALL_R*6)});
-      pts.push({x: T.ix+BALL_R*3 + t2*(T.iw-BALL_R*6), y: T.iy+T.ih-BALL_R*3 - t2*(T.ih-BALL_R*6)});
-    }
-  } else if (pattern === 3) {
-    // Clustered in centre
-    for (let i=0;i<n*4;i++) {
-      const a = Math.random()*Math.PI*2;
-      const r = BALL_R*2.5 + Math.random()*BALL_R*n*0.8;
-      pts.push({x:cx+Math.cos(a)*r, y:cy+Math.sin(a)*r});
-    }
-  } else if (pattern === 4) {
-    // Grid
-    const cols = Math.ceil(Math.sqrt(n*1.5));
-    const rows = Math.ceil(n*1.5/cols);
-    const gw = Math.min(T.iw*0.6, cols*BALL_R*2.8);
-    const gh = Math.min(T.ih*0.6, rows*BALL_R*2.8);
-    for (let r=0;r<rows;r++) for(let c=0;c<cols;c++)
-      pts.push({x: cx-gw/2+c*gw/(cols-1||1), y: cy-gh/2+r*gh/(rows-1||1)});
-  } else {
-    // Perimeter ring
-    for (let i=0;i<n*3;i++) {
-      const a = (i/(n*3))*Math.PI*2;
-      pts.push({x:cx+Math.cos(a)*hw*0.75, y:cy+Math.sin(a)*hh*0.75});
-      pts.push({x:cx+Math.cos(a)*hw*0.4,  y:cy+Math.sin(a)*hh*0.4});
+  }
+
+  // ── Pattern 1: DIAMOND (9-ball style: 1-2-3-2-1) ─────────────────────────
+  else if(pattern === 1){
+    const rows=[1,2,3,2,1];
+    if(T.isPortrait){
+      let py = cy - 2*sp*0.866;
+      rows.forEach(count=>{
+        for(let c=0;c<count;c++) pts.push({x:cx-(count-1)*sp/2+c*sp, y:py});
+        py += sp*0.866;
+      });
+    } else {
+      let px = cx - 2*sp*0.866;
+      rows.forEach(count=>{
+        for(let c=0;c<count;c++) pts.push({x:px, y:cy-(count-1)*sp/2+c*sp});
+        px += sp*0.866;
+      });
     }
   }
-  // Shuffle so we pick from anywhere in the pattern
-  for (let i=pts.length-1;i>0;i--) { const j=Math.floor(Math.random()*(i+1)); [pts[i],pts[j]]=[pts[j],pts[i]]; }
+
+  // ── Pattern 2: SINGLE ROW (all in a line across the table) ───────────────
+  else if(pattern === 2){
+    const maxInRow = Math.min(n, 8);
+    const rowW = (maxInRow-1)*sp;
+    for(let i=0;i<maxInRow;i++) pts.push({x:cx-rowW/2+i*sp, y:cy});
+    // Second row if overflow
+    for(let i=maxInRow;i<n*2;i++) pts.push({x:cx-rowW/2+(i-maxInRow)*sp, y:cy+sp*1.1});
+  }
+
+  // ── Pattern 3: TWO CLUSTERS ───────────────────────────────────────────────
+  else if(pattern === 3){
+    const offX = T.isPortrait ? 0         : T.iw*0.18;
+    const offY = T.isPortrait ? T.ih*0.15 : 0;
+    [[-1,1],[1,-1]].forEach(([sx,sy])=>{
+      for(let i=0;i<n*2;i++){
+        const a=(i/6)*Math.PI*2, r=sp*(0.5+Math.floor(i/6)*0.9);
+        pts.push({x:cx+sx*offX+Math.cos(a)*r, y:cy+sy*offY+Math.sin(a)*r});
+      }
+    });
+  }
+
+  // ── Pattern 4: L-SHAPE ────────────────────────────────────────────────────
+  else if(pattern === 4){
+    const ox = T.isPortrait ? cx-sp*1.5 : cx-sp*1.5;
+    const oy = T.isPortrait ? cy-sp*2   : cy-sp*1.5;
+    // Vertical arm
+    for(let i=0;i<5;i++) pts.push({x:ox, y:oy+i*sp});
+    // Horizontal arm
+    for(let i=1;i<5;i++) pts.push({x:ox+i*sp, y:oy+4*sp});
+  }
+
+  // ── Pattern 5: X CROSS ────────────────────────────────────────────────────
+  else if(pattern === 5){
+    // Diagonal 1: top-left to bottom-right
+    for(let i=-3;i<=3;i++) pts.push({x:cx+i*sp*0.8, y:cy+i*sp*0.8});
+    // Diagonal 2: top-right to bottom-left
+    for(let i=-3;i<=3;i++) pts.push({x:cx+i*sp*0.8, y:cy-i*sp*0.8});
+  }
+
+  // ── Pattern 6: SEMICIRCLE ARC ─────────────────────────────────────────────
+  else if(pattern === 6){
+    const r = sp*2.5;
+    const count = Math.min(n*2, 12);
+    for(let i=0;i<count;i++){
+      const a = (T.isPortrait ? Math.PI : Math.PI/2) + (i/(count-1)-0.5)*Math.PI*1.4;
+      pts.push({x:cx+Math.cos(a)*r*1.2, y:cy+Math.sin(a)*r});
+    }
+    // Fill centre
+    pts.push({x:cx, y:cy});
+  }
+
+  // ── Pattern 7: ZIGZAG (staggered double row) ─────────────────────────────
+  else if(pattern === 7){
+    const cols = Math.min(6, Math.ceil(n/2)+1);
+    for(let c=0;c<cols;c++){
+      pts.push({x:cx-(cols-1)*sp/2+c*sp, y:cy - sp*0.55});
+      pts.push({x:cx-(cols-1)*sp/2+c*sp - sp/2, y:cy + sp*0.55});
+    }
+  }
+
+  // ── Pattern 8: PERIMETER RING ────────────────────────────────────────────
+  else if(pattern === 8){
+    const rw = T.iw*0.32, rh = T.ih*0.30;
+    const count = Math.min(n*2, 14);
+    for(let i=0;i<count;i++){
+      const a=(i/count)*Math.PI*2;
+      pts.push({x:cx+Math.cos(a)*rw, y:cy+Math.sin(a)*rh});
+    }
+    // Extra inner ring for higher ball counts
+    for(let i=0;i<count;i++){
+      const a=(i/count)*Math.PI*2+Math.PI/count;
+      pts.push({x:cx+Math.cos(a)*rw*0.5, y:cy+Math.sin(a)*rh*0.5});
+    }
+  }
+
+  // ── Pattern 9: TIGHT CENTRE PACK ─────────────────────────────────────────
+  else if(pattern === 9){
+    // Hexagonal close-packing from centre
+    pts.push({x:cx, y:cy});
+    const rings = [[6,1],[12,2],[18,3]];
+    rings.forEach(([count, ring])=>{
+      for(let i=0;i<count;i++){
+        const a=(i/count)*Math.PI*2;
+        pts.push({x:cx+Math.cos(a)*sp*ring, y:cy+Math.sin(a)*sp*ring*0.87});
+      }
+    });
+  }
+
   return pts;
 }
 
+// ── Start level ────────────────────────────────────────────────────────────
 // ── Start level ────────────────────────────────────────────────────────────
 function startLevel() {
   document.getElementById('overlay').classList.add('hidden');
   resizeCanvas();
   const lvl  = getLevelData(G.level);
-  G.balls=[]; G.particles=[]; G.combo=0; G.explosion=null; G.phase='idle'; updateLivesDisplay();
+  G.balls=[]; G.particles=[]; G.combo=0; G.explosion=null; G.phase='idle'; G._scratchedThisLevel=false; G._levelStartTime=Date.now(); updateLivesDisplay();
 
   G.cue = T.isPortrait
     ? {x:T.ix+Math.round(T.iw/2),   y:T.iy+Math.round(T.ih*0.75), vx:0,vy:0,r:BALL_R}
@@ -898,15 +993,16 @@ function startLevel() {
     const br = BALL_R; // danger bombs now same size as regular balls
     G.balls.push({
       x:pos.x, y:pos.y, vx:0,vy:0, r:br,
-      color: isDanger ? '#e8e8e0' : BCOLORS[i % BCOLORS.length], // angry ball = cream white
+      color: isDanger ? '#e8e8e0' : BCOLORS[i % BCOLORS.length],
       isBomb, isDanger,
       timer:tv, maxTimer:tv, id:i,
       potted:false, exploded:false,
       ph:Math.random()*Math.PI*2,
       fuseAngle: Math.random()*Math.PI*2,
-      fuseActive: false,  // fuse lights on hard hit
-      fuseTimer: 20,      // 20s countdown after fuse lit
-      fuseMaxTimer: 20
+      fuseActive: false,
+      fuseTimer: 20,
+      fuseMaxTimer: 20,
+      neverHit: true // true until first contact — used for 1-hit sink bonus
     });
   });
 
@@ -1234,15 +1330,22 @@ function moveBall(ball,isCue) {
           triggerLoss(p.x, p.y);
           return;
         }
+        G._scratchedThisLevel = true; // marks level as imperfect
         ball.x=T.isPortrait?T.ix+Math.round(T.iw/2):T.ix+Math.round(T.iw*0.25);
         ball.y=T.isPortrait?T.iy+Math.round(T.ih*0.75):T.iy+Math.round(T.ih/2);
         ball.vx=ball.vy=0;
       } else {
         ball.potted=true; G.combo++;
-        const pts=100*G.combo; G.score+=pts;
-        showCombo(ball.x,ball.y,G.combo,pts);
+        let pts = 100*G.combo;
+        // 1-hit sink bonus: ball was never touched before this shot
+        if(ball.neverHit){
+          pts *= 2;
+          showCombo(ball.x,ball.y,G.combo,pts,'⚡1-HIT!');
+        } else {
+          showCombo(ball.x,ball.y,G.combo,pts);
+        }
+        G.score+=pts;
         refreshStrip();
-        // Check win immediately — don't wait for cue ball to stop
         checkEnd();
       }
       return;
@@ -1256,6 +1359,8 @@ function resolveBB(a,b) {
   const nx=dx/d,ny=dy/d,ov=(a.r+b.r)-d;
   a.x-=nx*ov*0.5; a.y-=ny*ov*0.5;
   b.x+=nx*ov*0.5; b.y+=ny*ov*0.5;
+  // Mark target ball as having been hit (for 1-hit sink tracking)
+  if(b.neverHit !== undefined) b.neverHit = false;
   const dvn=(a.vx-b.vx)*nx+(a.vy-b.vy)*ny;
   if(dvn>0){
     a.vx-=dvn*nx;a.vy-=dvn*ny;
@@ -1391,16 +1496,38 @@ function explodeBall(b) {
 }
 
 function checkEnd() {
-  if(G.explosion && G.explosion.t < G.explosion.maxT) return; // let explosion play out
-  // Win = ALL balls sunk (angry balls must be sunk too, they're not optional)
-  const targetBalls = G.balls; // angry balls included
+  if(G.explosion && G.explosion.t < G.explosion.maxT) return;
+  const targetBalls = G.balls;
   if(!targetBalls.some(b=>!b.potted&&!b.exploded)){
-    G.score+=G.level*500;
+    let bonus = G.level * 500;
+    let bonusMsg = '';
+
+    // Time bonus: percentage of time remaining on the ball with most time left
+    if(!settings.timer){
+      const alive = G.balls.filter(b=>b.isBomb&&!b.isDanger);
+      if(alive.length === 0 && G._levelStartTime){
+        const elapsed = (Date.now() - G._levelStartTime) / 1000;
+        const lvl = getLevelData(G.level);
+        const timeBonus = Math.max(0, Math.floor((1 - elapsed/lvl.t) * G.level * 300));
+        if(timeBonus > 0){ bonus += timeBonus; bonusMsg += ` ⚡+${timeBonus}time`; }
+      }
+    }
+
+    // Perfect level bonus: no scratches (cue ball never potted this level)
+    if(!G._scratchedThisLevel){
+      const perfectBonus = G.level * 200;
+      bonus += perfectBonus;
+      bonusMsg += ` ✨+${perfectBonus}perfect`;
+    }
+
+    G.score += bonus;
+    G._levelStartTime = Date.now();
+    G._scratchedThisLevel = false;
+
     if(G.level>=MAX_LEVEL){
-      // Completed all levels — show rankings as champion
       showRankings(true);
     } else {
-      showOver('CLEARED!','Level '+G.level+' done! +'+G.level*500+' pts',false);
+      showOver('CLEARED!','Level '+G.level+' done! +'+bonus+' pts'+bonusMsg,false);
       G.level++;
     }
   }
@@ -1527,11 +1654,11 @@ function rankGoHome() {
   G.phase='idle'; G.cue=null; G.balls=[];
 }
 
-function showCombo(x,y,combo,pts) {
+function showCombo(x,y,combo,pts,label) {
   const el=document.getElementById('combo-pop');
   el.style.left=x+'px'; el.style.top=(y-24)+'px';
-  el.textContent=combo>1?('x'+combo+'! +'+pts):('+'+pts);
-  el.style.color=combo>2?'#ff6b00':'#00ff88';
+  el.textContent=label||(combo>1?('x'+combo+'! +'+pts):('+'+pts));
+  el.style.color=label?'#ffff44':combo>2?'#ff6b00':'#00ff88';
   el.style.opacity=1; el.style.transform='translateY(0)'; el.style.transition='none';
   setTimeout(()=>{el.style.transition='opacity .7s,transform .7s';el.style.opacity=0;el.style.transform='translateY(-30px)';},40);
 }
@@ -1943,7 +2070,8 @@ function drawCueStick(cx, cy, angle) {
 }
 
 function drawAimLine() {
-  if(G.phase!=='aiming'||!G.cue) return;
+  const showingEarly = G.phase==='rolling' && G.cue && G.cue._showCue;
+  if((G.phase!=='aiming' && !showingEarly)||!G.cue) return;
   const{x,y,r}=G.cue;
   const cos=Math.cos(G.aimAngle),sin=Math.sin(G.aimAngle);
   const hit=castRay(x,y,cos,sin,r);
@@ -1964,23 +2092,24 @@ function drawAimLine() {
     ctx.beginPath();ctx.arc(hit.x,hit.y,r,0,Math.PI*2);
     ctx.strokeStyle='rgba(255,255,255,0.45)';ctx.lineWidth=1.5;ctx.stroke();
 
-    // Target ball travel direction: from ghost cue centre through target centre
+    // Target ball direction: unit vector from ghost-cue-centre → target-ball-centre
+    // This is physically correct: in elastic collision, target travels along this line
     const tdx = b.x - hit.x;
     const tdy = b.y - hit.y;
     const td  = Math.hypot(tdx, tdy) || 1;
     const tnx = tdx / td;
     const tny = tdy / td;
 
-    // 10% of table short side (50% of the previous 20%)
-    const forecastLen = Math.min(T.iw, T.ih) * 0.10;
+    // Draw full forecast line across the table so direction is clearly visible
+    const forecastLen = Math.min(T.iw, T.ih) * 0.55;
     const ex = b.x + tnx * forecastLen;
     const ey = b.y + tny * forecastLen;
 
-    // Dashed white line — only if ball path is enabled
+    // Dashed line — only if ball path is enabled
     if(settings.ballpath){
       ctx.setLineDash([8, 6]);
-      ctx.strokeStyle='rgba(255,255,255,0.6)';
-      ctx.lineWidth=2.5;
+      ctx.strokeStyle='rgba(255,255,255,0.45)';
+      ctx.lineWidth=1.8;
       ctx.beginPath();ctx.moveTo(b.x,b.y);ctx.lineTo(ex,ey);ctx.stroke();
       ctx.setLineDash([]);
     }
