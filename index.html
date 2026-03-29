@@ -79,11 +79,11 @@ box-shadow:0 2px 5px rgba(0,0,0,0.4);
 #app{position:fixed;top:0;left:0;right:0;bottom:0;display:flex;flex-direction:column;overflow:hidden;background:#0d0d0d;}
 #topbar{display:flex;align-items:center;justify-content:space-between;padding:6px 12px;background:#111;border-bottom:1px solid #222;flex-shrink:0;}
 #topbar h1{font-family:‘Black Ops One’,Impact,‘Arial Black’,fantasy,cursive;font-size:.9rem;letter-spacing:3px;color:#ff6b00;text-shadow:0 0 10px rgba(255,107,0,.5);}
-.stats{display:flex;gap:12px;align-items:center;}
-.stat{display:flex;flex-direction:column;align-items:center;}
-.stat-label{font-size:.45rem;letter-spacing:2px;color:#aaa;text-transform:uppercase;}
-.stat-value{font-size:.85rem;color:#f0e8d8;}
-#btn-home{font-family:‘Black Ops One’,Impact,‘Arial Black’,fantasy,cursive;font-size:.7rem;letter-spacing:2px;padding:8px 18px;background:rgba(255,107,0,0.12);border:2px solid #ff6b00;border-radius:6px;color:#ff6b00;cursor:pointer;white-space:nowrap;}
+.stats{display:flex;gap:6px;align-items:center;flex-wrap:nowrap;overflow:hidden;min-width:0;}
+.stat{display:flex;flex-direction:column;align-items:center;min-width:0;}
+.stat-label{font-size:.4rem;letter-spacing:1px;color:#aaa;text-transform:uppercase;white-space:nowrap;}
+.stat-value{font-size:.78rem;color:#f0e8d8;white-space:nowrap;}
+#btn-home{font-family:‘Black Ops One’,Impact,‘Arial Black’,fantasy,cursive;font-size:.65rem;letter-spacing:1px;padding:6px 12px;background:rgba(255,107,0,0.12);border:2px solid #ff6b00;border-radius:6px;color:#ff6b00;cursor:pointer;white-space:nowrap;flex-shrink:0;}
 #btn-home:active{border-color:#ff6b00;color:#ff6b00;}
 
 /* ── CANVAS ── */
@@ -257,7 +257,7 @@ overflow-y:auto;background:#0e0e0e;width:100%;height:100%;
 <div id="home">
   <div id="home-title">💣 LUCKY BALLS<br>BILLIARDS 💣</div>
   <div id="home-sub">💣 &nbsp; pocket balls · build streaks · dodge the bombs</div>
-  <div style="font-size:.55rem;letter-spacing:2px;color:#555;text-transform:uppercase;margin-top:-24px;margin-bottom:28px;">v2026.3.29.01</div>
+  <div style="font-size:.55rem;letter-spacing:2px;color:#555;text-transform:uppercase;margin-top:-24px;margin-bottom:28px;">v2026.3.29.02</div>
   <div class="diff-label">Select Difficulty</div>
   <div class="diff-btns">
     <button class="diff-btn" id="d-easy"   onclick="selectDiff('easy')">EASY</button>
@@ -649,22 +649,37 @@ function launchGame() {
   startLevel();
 }
 
+function placePracticeBall() {
+  // Place a single red target ball at the centre-far end of the table
+  const bx = T.isPortrait ? T.ix+Math.round(T.iw/2) : T.ix+Math.round(T.iw*0.65);
+  const by = T.isPortrait ? T.iy+Math.round(T.ih*0.28) : T.iy+Math.round(T.ih/2);
+  return {
+    x:bx, y:by, vx:0, vy:0, r:BALL_R,
+    color:'#e83030', id:0,
+    isBomb:false, isDanger:false,
+    potted:false, exploded:false,
+    neverHit:true, hitCount:0,
+    ph:0, _roll:0, _rollDir:0,
+    _practiceOriginX:bx, _practiceOriginY:by // remember start pos to reset
+  };
+}
+
 function startPractice() {
   document.getElementById('overlay').classList.add('hidden');
   buildTable();
-  G.balls = []; // no target balls
   G.particles = []; G.combo = 0; G.explosion = null;
+  // Cue ball at one-quarter table
   G.cue = T.isPortrait
-    ? {x:T.ix+Math.round(T.iw/2),   y:T.iy+Math.round(T.ih*0.5), vx:0,vy:0,r:BALL_R,spinX:0,spinY:0,_distTravelled:0}
-    : {x:T.ix+Math.round(T.iw*0.25),y:T.iy+Math.round(T.ih/2),   vx:0,vy:0,r:BALL_R,spinX:0,spinY:0,_distTravelled:0};
-  // Aim along the table axis: up in portrait (mobile), right in landscape (desktop)
+    ? {x:T.ix+Math.round(T.iw/2),   y:T.iy+Math.round(T.ih*0.72), vx:0,vy:0,r:BALL_R,spinX:0,spinY:0,_distTravelled:0}
+    : {x:T.ix+Math.round(T.iw*0.25),y:T.iy+Math.round(T.ih/2),    vx:0,vy:0,r:BALL_R,spinX:0,spinY:0,_distTravelled:0};
+  // One red target ball to practice on
+  G.balls = [placePracticeBall()];
   G.aimAngle = T.isPortrait ? -Math.PI/2 : 0;
   G.phase = 'aiming';
   document.getElementById('s-left').textContent = '∞';
   document.getElementById('s-score').textContent = '0';
-  document.getElementById('s-lvl').textContent = '–';
+  document.getElementById('s-lvl').textContent = 'PRX';
   document.getElementById('s-lives').textContent = '🎯';
-  // Practice: shooting cue ball respawns it after stopping, so you can shoot forever
   G._practiceMode = true;
   refreshStrip();
 }
@@ -1558,8 +1573,20 @@ function physics() {
       }
     }
     if(G._practiceMode){
-      // Practice: silently reset cue ball to centre after each shot
+      // Reset cue ball to start position
       G.cue.vx=0; G.cue.vy=0; G.cue._distTravelled=0;
+      G.cue.x = T.isPortrait ? T.ix+Math.round(T.iw/2) : T.ix+Math.round(T.iw*0.25);
+      G.cue.y = T.isPortrait ? T.iy+Math.round(T.ih*0.72) : T.iy+Math.round(T.ih/2);
+      // Reset target ball to its start position
+      for(const b of G.balls){
+        if(b._practiceOriginX !== undefined){
+          b.x=b._practiceOriginX; b.y=b._practiceOriginY;
+          b.vx=0; b.vy=0; b.potted=false; b.exploded=false;
+          b.neverHit=true; b.hitCount=0;
+        }
+      }
+      G.aimAngle = T.isPortrait ? -Math.PI/2 : 0;
+      G.combo=0;
     } else {
       checkEnd();
     }
@@ -1672,6 +1699,11 @@ function saveScore(entry) {
 
 // Trigger the UNLUCKY BALLS explosion + animation before showing rankings
 function triggerLoss(x, y) {
+  // In practice mode: just silently reset, no explosion
+  if(G._practiceMode){
+    G.phase = 'rolling'; // let physics stop naturally then reset fires
+    return;
+  }
   if (G.explosion && G.explosion.t > 0 && G.explosion.t < G.explosion.maxT) return;
   G.phase = 'exploding';
   G.shake = 1.4;
