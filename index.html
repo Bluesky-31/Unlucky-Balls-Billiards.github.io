@@ -1150,15 +1150,34 @@ const SPIN_CYCLE = [
 ];
 let spinCycleIdx = 0;
 
+// R (CW on screen):  CTR → T → R → B → L → CTR
+// Q (CCW, rev of R):  CTR → B → R → T → L → CTR
+// Q is the exact reverse of R — at any position, tap the other key to go back one step.
+// Uses a subring of 4 spins [T,R,B,L] (indices into SPIN_CYCLE), no centre mid-cycle.
+const SPIN_SUBRING = [1,2,3,4]; // T,R,B,L in SPIN_CYCLE
+// R entry = index 0 (T), Q entry = index 2 (B) in subring
+let spinSubIdx  = -1; // -1 = at centre (not in subring)
+
 function stepSpin(dir) {
-  if(spinCycleIdx === 0){
-    // From centre: R starts at T (cw), Q starts at B (ccw)
-    spinCycleIdx = dir > 0 ? 1 : 3;
+  if(spinSubIdx === -1){
+    // From centre: R starts at T(subring 0), Q starts at B(subring 2)
+    spinSubIdx = dir > 0 ? 0 : 2;
   } else {
-    spinCycleIdx = ((spinCycleIdx + dir) + SPIN_CYCLE.length) % SPIN_CYCLE.length;
+    spinSubIdx = ((spinSubIdx + dir) + SPIN_SUBRING.length) % SPIN_SUBRING.length;
+    // If we've wrapped all the way back to the entry point we started from,
+    // one more step returns to centre
+    if((dir > 0 && spinSubIdx === 0) || (dir < 0 && spinSubIdx === 2)){
+      spinSubIdx = -1; // back to centre
+    }
   }
-  const s = SPIN_CYCLE[spinCycleIdx];
-  G.spinX = s.x; G.spinY = s.y;
+  if(spinSubIdx === -1){
+    G.spinX = 0; G.spinY = 0;
+    spinCycleIdx = 0;
+  } else {
+    const s = SPIN_CYCLE[SPIN_SUBRING[spinSubIdx]];
+    G.spinX = s.x; G.spinY = s.y;
+    spinCycleIdx = SPIN_SUBRING[spinSubIdx];
+  }
 }
 
 document.addEventListener('keydown', e => {
@@ -1267,7 +1286,7 @@ function shoot() {
   G.cue._distTravelled = 0; // reset distance for spin delay
   G.phase='rolling'; G.combo=0; G._pottedThisShot=false;
   G.spinX=0; G.spinY=0;
-  spinCycleIdx=0;
+  spinCycleIdx=0; spinSubIdx=-1;
 }
 
 // ── Ray cast ───────────────────────────────────────────────────────────────
@@ -3054,4 +3073,4 @@ document.addEventListener('touchstart', () => Audio.init(), {once: true});
 </script>
 
 </body>
-</html> 
+</html>
