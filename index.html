@@ -83,7 +83,7 @@ box-shadow:0 2px 5px rgba(0,0,0,0.4);
 .stat{display:flex;flex-direction:column;align-items:center;}
 .stat-label{font-size:.45rem;letter-spacing:2px;color:#aaa;text-transform:uppercase;}
 .stat-value{font-size:.85rem;color:#f0e8d8;}
-#btn-home{font-family:‘Share Tech Mono’,‘Courier New’,‘Lucida Console’,monospace;font-size:.6rem;letter-spacing:1px;padding:4px 8px;background:transparent;border:1px solid #666;border-radius:3px;color:#ccc;cursor:pointer;}
+#btn-home{font-family:‘Black Ops One’,Impact,‘Arial Black’,fantasy,cursive;font-size:.7rem;letter-spacing:2px;padding:8px 18px;background:rgba(255,107,0,0.12);border:2px solid #ff6b00;border-radius:6px;color:#ff6b00;cursor:pointer;white-space:nowrap;}
 #btn-home:active{border-color:#ff6b00;color:#ff6b00;}
 
 /* ── CANVAS ── */
@@ -192,7 +192,7 @@ overflow-y:auto;background:#0e0e0e;width:100%;height:100%;
 #app.desktop-mode #topbar h1{font-size:1.1rem;}
 #app.desktop-mode .stat-label{font-size:.5rem;}
 #app.desktop-mode .stat-value{font-size:.95rem;}
-#app.desktop-mode #btn-home{font-size:.7rem;padding:5px 12px;}
+#app.desktop-mode #btn-home{font-size:.82rem;padding:10px 22px;}
 
 /* Also apply via media query as backup */
 @media(min-width:900px){
@@ -226,7 +226,7 @@ overflow-y:auto;background:#0e0e0e;width:100%;height:100%;
 #topbar h1{font-size:1.1rem;}
 .stat-label{font-size:.5rem;}
 .stat-value{font-size:.95rem;}
-#btn-home{font-size:.7rem;padding:5px 12px;}
+#btn-home{font-size:.82rem;padding:10px 22px;}
 #home-title{font-size:3rem;}
 #home-sub{font-size:.8rem;}
 .diff-btn{font-size:1rem;padding:14px 28px;}
@@ -310,7 +310,7 @@ border:1px solid rgba(255,80,80,0.35);">
   <div style="margin-bottom:10px;"><span style="color:#fff;">😠 Angry balls</span> — must be sunk · hitting lights a 20s fuse · smashing one hard = instant loss</div>
 
   <div style="color:#ff6b00;font-size:.62rem;letter-spacing:2px;margin-bottom:5px;">🕹️ CONTROLS</div>
-  <div style="margin-bottom:3px;"><span style="color:#fff;">Desktop</span> — mouse to aim · click or Space to fire · A/F = power</div>
+  <div style="margin-bottom:3px;"><span style="color:#fff;">Desktop</span> — mouse to aim · click or Space to fire · A/F = power · Q/R = cycle spin</div>
   <div style="margin-bottom:10px;"><span style="color:#fff;">Mobile</span> — drag to aim · quick tap fires · FIRE button</div>
 
   <div style="color:#ff6b00;font-size:.62rem;letter-spacing:2px;margin-bottom:5px;">🌀 SPIN</div>
@@ -1138,25 +1138,50 @@ document.addEventListener('mousemove', e => {
 
 // ── Keyboard controls ────────────────────────────────────────────────────────
 // Space / Enter  → fire
-// A              → reduce power by 5
-// F              → increase power by 5
-document.addEventListener('keydown', e => {
-  // Don't fire if user is typing in an input
-  if (e.target.tagName === 'INPUT') return;
+// A/F → power  Q/R → spin cycle  Space/Enter → fire
+// R (clockwise):  Centre→T→R→B→L→Centre  (starts at topspin)
+// Q (counter-cw): Centre→B→L→T→R→Centre  (starts at backspin)
+const SPIN_CYCLE = [
+  {x:0,   y:0,   label:'CTR'},  // 0 = centre
+  {x:0,   y:-1,  label:'T'},    // 1 = topspin
+  {x:1,   y:0,   label:'R'},    // 2 = right
+  {x:0,   y:1,   label:'B'},    // 3 = backspin
+  {x:-1,  y:0,   label:'L'},    // 4 = left
+];
+let spinCycleIdx = 0;
 
+function stepSpin(dir) {
+  if(spinCycleIdx === 0){
+    // From centre: R starts at T (cw), Q starts at B (ccw)
+    spinCycleIdx = dir > 0 ? 1 : 3;
+  } else {
+    spinCycleIdx = ((spinCycleIdx + dir) + SPIN_CYCLE.length) % SPIN_CYCLE.length;
+  }
+  const s = SPIN_CYCLE[spinCycleIdx];
+  G.spinX = s.x; G.spinY = s.y;
+}
+
+document.addEventListener('keydown', e => {
+  if (e.target.tagName === 'INPUT') return;
   if (e.code === 'Space' || e.code === 'Enter') {
-    e.preventDefault();
-    shoot();
+    e.preventDefault(); shoot();
   }
   if (e.code === 'KeyA') {
-    e.preventDefault();
-    setPower(Math.max(44, G.power - 5));
+    e.preventDefault(); setPower(Math.max(44, G.power - 5));
   }
   if (e.code === 'KeyF') {
-    e.preventDefault();
-    setPower(Math.min(100, G.power + 5));
+    e.preventDefault(); setPower(Math.min(100, G.power + 5));
+  }
+  if (e.code === 'KeyR') {
+    e.preventDefault(); stepSpin(+1); // clockwise
+  }
+  if (e.code === 'KeyQ') {
+    e.preventDefault(); stepSpin(-1); // counterclockwise
   }
 });
+
+// Reset spin cycle index when spin is zeroed after a shot
+const _origShoot = shoot;
 
 // ── Spin pad ───────────────────────────────────────────────────────────────
 let spinDn = false;
@@ -1233,7 +1258,7 @@ function shoot() {
   // Desktop: min=9.5, default=15.84, max=35
   const spd = settings.mobile
     ? -18.7124 + G.power*0.5571 + G.power*G.power*-0.001684
-    : 25.4388  + G.power*(-0.7220) + G.power*G.power*0.0082;
+    : 62.9592  + G.power*(-2.0842) + G.power*G.power*0.021046; // max=45
   G.cue.vx=Math.cos(G.aimAngle)*spd;
   G.cue.vy=Math.sin(G.aimAngle)*spd;
   // Store spin on cue ball for physics — spinY<0=topspin, spinY>0=backspin
@@ -1242,6 +1267,7 @@ function shoot() {
   G.cue._distTravelled = 0; // reset distance for spin delay
   G.phase='rolling'; G.combo=0; G._pottedThisShot=false;
   G.spinX=0; G.spinY=0;
+  spinCycleIdx=0;
 }
 
 // ── Ray cast ───────────────────────────────────────────────────────────────
@@ -1270,7 +1296,7 @@ function castRay(ox,oy,dx,dy,r) {
 // ── Physics ────────────────────────────────────────────────────────────────
 function moveBall(ball,isCue) {
   ball.x+=ball.vx; ball.y+=ball.vy;
-  const FR = settings.mobile ? 0.976 : 0.983;
+  const FR = settings.mobile ? 0.976 : 0.970;
   ball.vx*=FR; ball.vy*=FR;
   // Spin is preserved during travel and applied at ball contact only
   // No speed modification during travel — spin doesn't meaningfully change
