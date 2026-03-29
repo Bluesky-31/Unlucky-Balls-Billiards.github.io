@@ -1289,14 +1289,13 @@ document.getElementById('fire-btn').addEventListener('touchstart', e=>e.stopProp
 function shoot() {
   const showingEarly = G.phase==='rolling' && G.cue && G.cue._showCue;
   if((G.phase!=='aiming' && !showingEarly)||!G.cue) return;
-  // Desktop: ±40% of default(72) across slider range
-  // Mobile:  ±40% of default(72) across slider range
-  // Both use linear formula: spd = a + power*b
-  // Mobile: gentler min (3.17), same default (15.84), 90% max (31.5)
-  // Desktop: min=9.5, default=15.84, max=35
-  const spd = settings.mobile
-    ? -18.7124 + G.power*0.5571 + G.power*G.power*-0.001684
-    : 62.9592  + G.power*(-2.0842) + G.power*G.power*0.021046; // max=45
+  // Table-scaled speed: scale the mobile formula by table size so the ball
+  // always travels the same proportion of the table at each power level.
+  const MOBILE_REF = 350; // px — reference short side (mobile portrait)
+  const tableShort = Math.min(T.iw, T.ih);
+  const tableScale = tableShort / MOBILE_REF; // no cap — full proportional scaling
+  const baseSpd = -18.7124 + G.power*0.5571 + G.power*G.power*-0.001684;
+  const spd = baseSpd * tableScale * 1.5; // 1.5x boost to ensure full table reach
   G.cue.vx=Math.cos(G.aimAngle)*spd;
   G.cue.vy=Math.sin(G.aimAngle)*spd;
   // Store spin on cue ball for physics — spinY<0=topspin, spinY>0=backspin
@@ -1335,7 +1334,9 @@ function castRay(ox,oy,dx,dy,r) {
 // ── Physics ────────────────────────────────────────────────────────────────
 function moveBall(ball,isCue) {
   ball.x+=ball.vx; ball.y+=ball.vy;
-  const FR = settings.mobile ? 0.976 : 0.970;
+  // FR=0.976 for both — proportional stopping distance is handled by
+  // the table-scaled shot speed, not by varying friction.
+  const FR = settings.mobile ? 0.976 : 0.968;
   ball.vx*=FR; ball.vy*=FR;
   // Spin is preserved during travel and applied at ball contact only
   // No speed modification during travel — spin doesn't meaningfully change
@@ -1374,7 +1375,8 @@ function moveBall(ball,isCue) {
     if(isCue&&ball.spinX) ball.vx -= ball.spinX * preSpd * 0.55;
   }
   // Snap to full stop AFTER all bounces — ball touching wall can't re-enter loop
-  if(Math.hypot(ball.vx,ball.vy) < MIN_SPD){ ball.vx=0; ball.vy=0; }
+  const _minSpd = MIN_SPD * Math.max(1, Math.min(T.iw,T.ih) / 350);
+  if(Math.hypot(ball.vx,ball.vy) < _minSpd){ ball.vx=0; ball.vy=0; }
   for(const p of T.pockets){
     const pR = p.r || T.pr; // per-pocket radius
     const dist = Math.hypot(ball.x-p.x,ball.y-p.y);
@@ -1522,8 +1524,9 @@ function physics() {
   }
 
   const cs = Math.hypot(G.cue.vx, G.cue.vy);
-  const STOP = MIN_SPD * 5;  // threshold to consider a ball stopped
-  const CUE_SHOW = MIN_SPD * 12; // cue stick appears when cue is this slow
+  const _scale = Math.max(1, Math.min(T.iw,T.ih) / 350);
+  const STOP = MIN_SPD * 5 * _scale;
+  const CUE_SHOW = MIN_SPD * 12 * _scale;
 
   // Cue ball slow enough to show the cue stick early
   G.cue._showCue = (cs < CUE_SHOW);
