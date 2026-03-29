@@ -256,7 +256,7 @@ overflow-y:auto;background:#0e0e0e;width:100%;height:100%;
 
 <div id="home">
   <div id="home-title">💣 LUCKY BALLS<br>BILLIARDS 💣</div>
-  <div id="home-sub">💣 &nbsp; pocket balls, dodge the bombs</div>
+  <div id="home-sub">💣 &nbsp; pocket balls · build streaks · dodge the bombs</div>
   <div class="diff-label">Select Difficulty</div>
   <div class="diff-btns">
     <button class="diff-btn" id="d-easy"   onclick="selectDiff('easy')">EASY</button>
@@ -295,29 +295,40 @@ border:1px solid rgba(255,80,80,0.35);">
 <div id="settings" class="hidden">
   <div id="settings-title">⚙ SETTINGS</div>
 
-  <!-- HOW TO PLAY — first so new players see it immediately -->
+  <!-- HOW TO PLAY -->
 
   <div class="set-panel">
     <div class="set-panel-header"><span class="set-panel-icon">📖</span><span class="set-panel-title">HOW TO PLAY</span></div>
-    <div style="padding:12px 14px;font-size:.75rem;color:#bbb;line-height:1.9;">
-      <div style="color:#ff6b00;font-size:.62rem;letter-spacing:2px;margin-bottom:5px;">🎯 OBJECTIVE</div>
-      <div style="margin-bottom:10px;">Sink all balls before timers run out. Clear all 10 levels to win. Use 🎯 Practice mode to try shots freely with no balls or limits.</div>
+    <div style="padding:16px 16px 14px;font-size:.88rem;color:#ddd;line-height:1.75;">
 
 ```
-  <div style="color:#ff6b00;font-size:.62rem;letter-spacing:2px;margin-bottom:5px;">🎱 THE BALLS</div>
-  <div style="margin-bottom:3px;"><span style="color:#fff;">Coloured balls</span> — sink these to score</div>
-  <div style="margin-bottom:3px;"><span style="color:#fff;">💣 Ticking bombs</span> — sink before the timer hits zero</div>
-  <div style="margin-bottom:10px;"><span style="color:#fff;">😠 Angry balls</span> — must be sunk · hitting lights a 20s fuse · smashing one hard = instant loss</div>
+  <div style="color:#ff6b00;font-size:.7rem;letter-spacing:2px;font-weight:bold;margin-bottom:6px;">🎯 OBJECTIVE</div>
+  <div style="margin-bottom:14px;color:#ccc;">Sink all balls before the timers run out. Clear all 20 levels to win. Use Practice mode to work on shots freely.</div>
 
-  <div style="color:#ff6b00;font-size:.62rem;letter-spacing:2px;margin-bottom:5px;">🕹️ CONTROLS</div>
-  <div style="margin-bottom:3px;"><span style="color:#fff;">Desktop</span> — mouse to aim · click or Space to fire · A/F = power · Q/R = cycle spin</div>
-  <div style="margin-bottom:10px;"><span style="color:#fff;">Mobile</span> — drag to aim · quick tap fires · FIRE button</div>
+  <div style="color:#ff6b00;font-size:.7rem;letter-spacing:2px;font-weight:bold;margin-bottom:6px;">🎱 THE BALLS</div>
+  <div style="margin-bottom:5px;"><span style="color:#fff;font-weight:bold;">Coloured balls</span> — sink these to score points</div>
+  <div style="margin-bottom:5px;"><span style="color:#fff;font-weight:bold;">💣 Ticking bombs</span> — sink before the timer hits zero or you lose a life</div>
+  <div style="margin-bottom:14px;"><span style="color:#fff;font-weight:bold;">😠 Angry balls</span> — must be sunk to clear the level. Any hit lights a 20s fuse.</div>
 
-  <div style="color:#ff6b00;font-size:.62rem;letter-spacing:2px;margin-bottom:5px;">🌀 SPIN</div>
-  <div style="margin-bottom:10px;">Tap T/B/L/R on the spin pad · kicks in mid-table · resets after each shot</div>
+  <div style="color:#ff6b00;font-size:.7rem;letter-spacing:2px;font-weight:bold;margin-bottom:6px;">🕹️ CONTROLS</div>
+  <div style="margin-bottom:5px;"><span style="color:#fff;font-weight:bold;">Desktop</span> — mouse to aim · click or Space to fire · A / F keys = power</div>
+  <div style="margin-bottom:5px;"><span style="color:#fff;font-weight:bold;">Spin keys</span> — R cycles clockwise (starts topspin) · Q cycles counterclockwise (starts backspin)</div>
+  <div style="margin-bottom:14px;"><span style="color:#fff;font-weight:bold;">Mobile</span> — drag to aim · quick tap to fire · use spin pad and FIRE button</div>
 
-  <div style="color:#ff6b00;font-size:.62rem;letter-spacing:2px;margin-bottom:5px;">❤️ LIVES &amp; SCORING</div>
-  <div>Easy 3 lives · Normal 2 · Hard/Expert 1 · Combos multiply · 1-hit sinks score double · clear fast for time bonus · no scratch = perfect bonus</div>
+  <div style="color:#ff6b00;font-size:.7rem;letter-spacing:2px;font-weight:bold;margin-bottom:6px;">🌀 SPIN</div>
+  <div style="margin-bottom:5px;">Tap T / B / L / R on spin pad, or use Q / R keys on desktop.</div>
+  <div style="margin-bottom:14px;"><span style="color:#fff;font-weight:bold;">Topspin</span> = follow &nbsp;·&nbsp; <span style="color:#fff;font-weight:bold;">Backspin</span> = draw back &nbsp;·&nbsp; <span style="color:#fff;font-weight:bold;">Side</span> = angle deflect</div>
+
+  <div style="color:#ff6b00;font-size:.7rem;letter-spacing:2px;font-weight:bold;margin-bottom:6px;">🔥 SCORING &amp; PERFECTION</div>
+  <div style="margin-bottom:5px;"><span style="color:#fff;font-weight:bold;">Streak</span> — consecutive pots without a miss. ×3 = +25% pts &nbsp;·&nbsp; ×5 = +50% pts</div>
+  <div style="margin-bottom:5px;"><span style="color:#fff;font-weight:bold;">1-Hit sink</span> — sink a ball on first contact = double points</div>
+  <div style="margin-bottom:5px;"><span style="color:#fff;font-weight:bold;">Cracked balls</span> — missing chips the ball (−20% per hit, min 50% value)</div>
+  <div style="margin-bottom:5px;"><span style="color:#fff;font-weight:bold;">Shot budget</span> — limited shots per level. Run out = lose a life</div>
+  <div style="margin-bottom:14px;"><span style="color:#fff;font-weight:bold;">Bonuses</span> — clear fast = time bonus &nbsp;·&nbsp; no scratches = perfect bonus</div>
+
+  <div style="color:#ff6b00;font-size:.7rem;letter-spacing:2px;font-weight:bold;margin-bottom:6px;">❤️ LIVES</div>
+  <div style="color:#ccc;">Easy: 3 &nbsp;·&nbsp; Normal: 2 &nbsp;·&nbsp; Hard / Expert: 1</div>
+
 </div>
 ```
 
@@ -392,7 +403,7 @@ border:1px solid rgba(255,80,80,0.35);">
   <div id="rankings-final"></div>
   <div id="rankings-diff"></div>
   <table id="rankings-table">
-    <thead><tr><th>#</th><th>Player</th><th>Level</th><th>Score</th></tr></thead>
+    <thead><tr><th>#</th><th>Player</th><th>Level</th><th>Score</th><th>Streak</th></tr></thead>
     <tbody id="rankings-body"></tbody>
   </table>
   <div id="rankings-btns">
@@ -419,6 +430,8 @@ border:1px solid rgba(255,80,80,0.35);">
       <div class="stat"><span class="stat-label">SCORE</span><span class="stat-value" id="s-score">0</span></div>
       <div class="stat"><span class="stat-label">LEFT</span><span class="stat-value" id="s-left">0</span></div>
       <div class="stat"><span class="stat-label">TIME</span><span class="stat-value" id="s-time" style="color:#00ff88">–</span></div>
+      <div class="stat"><span class="stat-label">STREAK</span><span class="stat-value" id="s-streak" style="color:#ffcc00">0</span></div>
+      <div class="stat"><span class="stat-label">SHOTS</span><span class="stat-value" id="s-shots" style="color:#aaaaaa">–</span></div>
       <div class="stat"><span class="stat-label">LIVES</span><span class="stat-value" id="s-lives">❤️❤️❤️</span></div>
       <div class="stat"><span class="stat-label">DIFF</span><span class="stat-value" id="s-diff" style="color:#ff6b00">NRM</span></div>
     </div>
@@ -693,8 +706,9 @@ function getLevelData(lvl) {
     t = 100 + capped * 9;
   }
   const hasBombs = true;
-
-  return { n, t, hasBombs };
+  const budgetMult = difficulty==='easy'?3:difficulty==='normal'?2:difficulty==='expert'?1.2:1.5;
+  const shotBudget = Math.ceil(n * budgetMult);
+  return { n, t, hasBombs, shotBudget };
 }
 
 // ── Table geometry ─────────────────────────────────────────────────────────
@@ -954,7 +968,11 @@ function startLevel() {
   document.getElementById('overlay').classList.add('hidden');
   resizeCanvas();
   const lvl  = getLevelData(G.level);
-  G.balls=[]; G.particles=[]; G.combo=0; G.explosion=null; G.phase='idle'; G._scratchedThisLevel=false; G._levelStartTime=Date.now(); updateLivesDisplay();
+  const lvlData2 = getLevelData(G.level);
+  G.balls=[]; G.particles=[]; G.combo=0; G.explosion=null; G.phase='idle';
+  G._scratchedThisLevel=false; G._levelStartTime=Date.now();
+  G.streak=0; G.shotsUsed=0; G.shotBudget=lvlData2.shotBudget;
+  updateLivesDisplay(); updateStreakDisplay(); updateShotsDisplay();
   Audio.playGame(false);
 
   G.cue = T.isPortrait
@@ -1000,7 +1018,8 @@ function startLevel() {
       fuseActive: false,
       fuseTimer: 20,
       fuseMaxTimer: 20,
-      neverHit: true // true until first contact — used for 1-hit sink bonus
+      neverHit: true,  // true until first contact — used for 1-hit sink bonus
+      hitCount: 0      // number of times hit without sinking — draws cracks
     });
   });
 
@@ -1285,6 +1304,7 @@ function shoot() {
   G.cue.spinY = G.spinY; // top/backspin
   G.cue._distTravelled = 0; // reset distance for spin delay
   G.phase='rolling'; G.combo=0; G._pottedThisShot=false;
+  G.shotsUsed++; updateShotsDisplay();
   G.spinX=0; G.spinY=0;
   spinCycleIdx=0; spinSubIdx=-1;
 }
@@ -1379,18 +1399,26 @@ function moveBall(ball,isCue) {
         ball.vx=ball.vy=0;
       } else {
         ball.potted=true; G.combo++;
-        let pts = 100*G.combo;
+        G.streak++;
+        // Cracked balls worth less: -20% per hit, min 50%
+        const crackPenalty = Math.max(0.5, 1 - (ball.hitCount||0) * 0.20);
+        let pts = Math.floor(100 * G.combo * crackPenalty);
+        // Streak multiplier bonus on top of combo
+        const streakBonus = G.streak >= 5 ? Math.floor(pts * 0.5) : G.streak >= 3 ? Math.floor(pts * 0.25) : 0;
+        pts += streakBonus;
         Audio.sfxPotted(G.combo);
         if(G.combo >= 3) Audio.sfxCheer();
         else if(G.combo === 2) Audio.sfxClap();
-        if(ball.neverHit){
-          pts *= 2;
-          showCombo(ball.x,ball.y,G.combo,pts,'⚡1-HIT!');
-        } else {
-          showCombo(ball.x,ball.y,G.combo,pts);
-        }
+        let ptsLabel = null;
+        if(ball.neverHit && G.streak >= 3) ptsLabel = '⚡1-HIT x'+G.streak+'! +'+pts;
+        else if(ball.neverHit) ptsLabel = '⚡1-HIT! +'+pts;
+        else if(G.streak >= 5) ptsLabel = '🔥x'+G.streak+' STREAK! +'+pts;
+        else if(G.streak >= 3) ptsLabel = '🔥x'+G.streak+'! +'+pts;
+        if(ptsLabel) showCombo(ball.x,ball.y,G.combo,pts,ptsLabel);
+        else showCombo(ball.x,ball.y,G.combo,pts);
         G.score+=pts;
         G._pottedThisShot=true;
+        updateStreakDisplay();
         refreshStrip();
         checkEnd();
       }
@@ -1406,7 +1434,7 @@ function resolveBB(a,b) {
   a.x-=nx*ov*0.5; a.y-=ny*ov*0.5;
   b.x+=nx*ov*0.5; b.y+=ny*ov*0.5;
   // Mark target ball as having been hit (for 1-hit sink tracking)
-  if(b.neverHit !== undefined) b.neverHit = false;
+  if(b.neverHit !== undefined){ b.neverHit = false; b.hitCount = (b.hitCount||0) + 1; }
   const dvn=(a.vx-b.vx)*nx+(a.vy-b.vy)*ny;
   if(dvn>0){
     a.vx-=dvn*nx;a.vy-=dvn*ny;
@@ -1506,9 +1534,24 @@ function physics() {
     active.forEach(b=>{ b.vx=0; b.vy=0; });
     G.cue._showCue = true;
     G.phase='aiming';
-    // Miss sound if no balls were potted this shot
-    if(!G._pottedThisShot) Audio.sfxMiss();
+    // Miss — reset streak, play sound
+    if(!G._pottedThisShot){
+      Audio.sfxMiss();
+      if(G.streak > 0){
+        G.streak = 0;
+        updateStreakDisplay();
+      }
+    }
     G._pottedThisShot = false;
+    // Shot budget check
+    if(G.shotBudget && G.shotsUsed >= G.shotBudget && !G._practiceMode){
+      const remaining = G.balls.filter(b=>!b.potted&&!b.exploded&&!b.isDanger).length;
+      if(remaining > 0){
+        // Out of shots — lose a life
+        triggerLoss(G.cue ? G.cue.x : T.ix+T.iw/2, G.cue ? G.cue.y : T.iy+T.ih/2);
+        return;
+      }
+    }
     if(G._practiceMode){
       // Practice: silently reset cue ball to centre after each shot
       G.cue.vx=0; G.cue.vy=0; G.cue._distTravelled=0;
@@ -1675,7 +1718,7 @@ function showRankings(champion) {
   G.phase='idle';
   if(champion) Audio.sfxLevelClear(); else Audio.sfxGameOver();
   Audio.playMenu();
-  const entry = { score:G.score, level:G.level, diff:difficulty, name:'YOU', date:new Date().toLocaleDateString() };
+  const entry = { score:G.score, level:G.level, diff:difficulty, name:'YOU', date:new Date().toLocaleDateString(), bestStreak:G.streak };
   const allScores = saveScore(entry);
 
   // Find where this run sits
@@ -1701,7 +1744,8 @@ function showRankings(champion) {
       '<td>'+(medals[i]||'#'+(i+1))+'</td>'+
       '<td>'+(isYou?'YOU':s.name||'???')+'</td>'+
       '<td>'+s.level+'</td>'+
-      '<td>'+(s.score||0).toLocaleString()+'</td>';
+      '<td>'+(s.score||0).toLocaleString()+'</td>'+
+      '<td>'+(s.bestStreak||0)+'🔥</td>';
     tbody.appendChild(tr);
   });
 
@@ -1721,6 +1765,24 @@ function rankGoHome() {
   G.score=0; G.level=1;
   document.getElementById('home').classList.remove('hidden');
   G.phase='idle'; G.cue=null; G.balls=[];
+}
+
+function updateStreakDisplay() {
+  const el = document.getElementById('s-streak');
+  if(!el) return;
+  el.textContent = G.streak;
+  el.style.color = G.streak >= 5 ? '#ff6b00' : G.streak >= 3 ? '#ffcc00' : '#aaaaaa';
+  if(G.streak >= 3) el.style.textShadow = '0 0 8px currentColor';
+  else el.style.textShadow = 'none';
+}
+
+function updateShotsDisplay() {
+  const el = document.getElementById('s-shots');
+  if(!el) return;
+  if(!G.shotBudget){ el.textContent='–'; el.style.color='#aaaaaa'; return; }
+  const rem = G.shotBudget - G.shotsUsed;
+  el.textContent = rem;
+  el.style.color = rem <= 2 ? '#ff2a2a' : rem <= Math.ceil(G.shotBudget*0.3) ? '#ffaa00' : '#aaaaaa';
 }
 
 function showCombo(x,y,combo,pts,label) {
@@ -2275,6 +2337,41 @@ function drawDangerBomb(b, now) {
 }
 
 // Draw a single 3-D ball with rolling stripe, shadow and specular highlight
+function drawBallCracks(x, y, r, hits, ph) {
+  // Draw 1-3 crack lines on ball depending on hit count
+  const count = Math.min(hits, 3);
+  ctx.save();
+  ctx.strokeStyle = 'rgba(0,0,0,0.55)';
+  ctx.lineWidth = 1;
+  ctx.lineCap = 'round';
+  for(let i=0;i<count;i++){
+    const baseAngle = ph + i * (Math.PI*2/3);
+    const x1 = x + Math.cos(baseAngle) * r * 0.2;
+    const y1 = y + Math.sin(baseAngle) * r * 0.2;
+    // Main crack line
+    const x2 = x + Math.cos(baseAngle) * r * 0.75;
+    const y2 = y + Math.sin(baseAngle) * r * 0.75;
+    // Branch crack
+    const bAngle = baseAngle + 0.5;
+    const x3 = x + Math.cos(bAngle) * r * 0.5;
+    const y3 = y + Math.sin(bAngle) * r * 0.5;
+    ctx.beginPath(); ctx.moveTo(x1,y1); ctx.lineTo(x2,y2); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo((x1+x2)/2,(y1+y2)/2); ctx.lineTo(x3,y3); ctx.stroke();
+  }
+  // White highlight on crack for visibility
+  ctx.strokeStyle = 'rgba(255,255,255,0.25)';
+  ctx.lineWidth = 0.5;
+  for(let i=0;i<count;i++){
+    const baseAngle = ph + i * (Math.PI*2/3) + 0.04;
+    const x1 = x + Math.cos(baseAngle) * r * 0.2;
+    const y1 = y + Math.sin(baseAngle) * r * 0.2;
+    const x2 = x + Math.cos(baseAngle) * r * 0.75;
+    const y2 = y + Math.sin(baseAngle) * r * 0.75;
+    ctx.beginPath(); ctx.moveTo(x1,y1); ctx.lineTo(x2,y2); ctx.stroke();
+  }
+  ctx.restore();
+}
+
 function draw3DBall(x, y, r, color, label, rollAngle, rollDir, urgent, urgentColor, now, ph) {
   // Drop shadow (ellipse below ball)
   ctx.save();
@@ -2363,6 +2460,7 @@ function drawBalls() {
     if(speed > 0.05) b._rollDir = Math.atan2(b.vy, b.vx); // direction of travel
     b._roll += speed * 0.05;
     draw3DBall(b.x, b.y, b.r, b.color, b.id+1, b._roll, b._rollDir, pulse, b.color, now, b.ph);
+    if(b.hitCount > 0) drawBallCracks(b.x, b.y, b.r, b.hitCount, b.ph);
   }
   // Cue ball — white 3-D
   if(G.cue){
