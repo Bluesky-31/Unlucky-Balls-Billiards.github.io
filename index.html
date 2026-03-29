@@ -1293,9 +1293,10 @@ function shoot() {
   // always travels the same proportion of the table at each power level.
   const MOBILE_REF = 350; // px — reference short side (mobile portrait)
   const tableShort = Math.min(T.iw, T.ih);
-  const tableScale = tableShort / MOBILE_REF; // no cap — full proportional scaling
+  const tableScale = tableShort / MOBILE_REF;
   const baseSpd = -18.7124 + G.power*0.5571 + G.power*G.power*-0.001684;
-  const spd = baseSpd * tableScale * 1.5; // 1.5x boost to ensure full table reach
+  const desktopBoost = settings.mobile ? 1.0 : 1.5; // boost desktop only, mobile was perfect
+  const spd = baseSpd * tableScale * desktopBoost;
   G.cue.vx=Math.cos(G.aimAngle)*spd;
   G.cue.vy=Math.sin(G.aimAngle)*spd;
   // Store spin on cue ball for physics — spinY<0=topspin, spinY>0=backspin
