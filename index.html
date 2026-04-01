@@ -14,6 +14,14 @@
 :root{--accent:#ff6b00;--safe:#00ff88;--warn:#ff9900;--danger:#ff2a2a;--text:#e8e0cc;}
 html,body{width:100%;height:100%;overflow:hidden;background:#0d0d0d;font-family:'Share Tech Mono','Courier New','Lucida Console',monospace;color:#e8e0cc;}
 
+/* ── LEVEL MAP ── */
+#levelmap{position:fixed;inset:0;background:#0a0a0a;display:flex;flex-direction:column;align-items:center;z-index:180;padding:16px 12px 12px;overflow:hidden;}
+#levelmap.hidden{display:none;}
+#map-title{font-family:‘Black Ops One’,Impact,‘Arial Black’,fantasy,cursive;font-size:1.6rem;letter-spacing:4px;color:#ff6b00;text-shadow:0 0 16px rgba(255,107,0,.5);margin-bottom:4px;}
+#map-diff-label{font-size:.6rem;letter-spacing:3px;color:#888;text-transform:uppercase;margin-bottom:10px;}
+#map-canvas{flex:1;width:100%;max-width:600px;border-radius:12px;cursor:pointer;touch-action:none;}
+#map-btns{display:flex;gap:12px;margin-top:10px;}
+
 /* ── SETTINGS SCREEN ── */
 #settings{position:fixed;inset:0;background:#0a0a0a;display:flex;flex-direction:column;align-items:center;z-index:150;padding:24px 16px 32px;overflow-y:scroll;-webkit-overflow-scrolling:touch;}
 #settings.hidden{display:none;}
@@ -267,6 +275,13 @@ overflow-y:auto;background:#0e0e0e;width:100%;height:100%;
     <button class="diff-btn" id="d-practice" onclick="selectDiff('practice')">🎯 PRACTICE</button>
   </div>
   <div id="home-desc">Normal speed. Standard ball count per level.</div>
+  <button id="btn-continue" onclick="continueGame()"
+    style="display:none;font-family:'Black Ops One',Impact,'Arial Black',fantasy,cursive;
+    font-size:.78rem;letter-spacing:2px;padding:12px 28px;
+    background:rgba(0,230,118,0.12);border:2px solid #00e676;border-radius:8px;
+    color:#00e676;cursor:pointer;margin-bottom:10px;width:100%;max-width:340px;">
+    ▶ CONTINUE
+  </button>
   <div style="display:flex;gap:12px;margin-top:4px;">
     <button id="home-start" onclick="launchGame()">💣 LIGHT FUSE</button>
     <button onclick="openSettings()" style="font-family:'Black Ops One',Impact,'Arial Black',fantasy,cursive;font-size:.9rem;letter-spacing:2px;padding:14px 22px;background:transparent;border:2px solid #333;border-radius:8px;color:#666;cursor:pointer;">⚙ SETTINGS</button>
@@ -396,6 +411,17 @@ border:1px solid rgba(255,80,80,0.35);">
 
 </div>
 
+<!-- LEVEL MAP -->
+
+<div id="levelmap" class="hidden">
+  <div id="map-title">⚔️ WORLD MAP</div>
+  <div id="map-diff-label"></div>
+  <canvas id="map-canvas"></canvas>
+  <div id="map-btns">
+    <button class="rank-btn" onclick="mapGoHome()">🏠 MENU</button>
+  </div>
+</div>
+
 <!-- RANKINGS -->
 
 <div id="rankings" class="hidden">
@@ -442,6 +468,7 @@ border:1px solid rgba(255,80,80,0.35);">
          style="font-size:.85rem;text-decoration:none;opacity:0.75;transition:opacity .2s;"
          onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.75'">❤️</a>
       <button id="btn-home" onclick="goHome()">MENU</button>
+      <button id="btn-map" onclick="showLevelMap(0)" style="font-family:'Black Ops One',Impact,'Arial Black',fantasy,cursive;font-size:.65rem;letter-spacing:1px;padding:6px 10px;background:rgba(0,200,100,0.12);border:2px solid #00c864;border-radius:6px;color:#00c864;cursor:pointer;white-space:nowrap;flex-shrink:0;">MAP</button>
     </div>
   </div>
   <div id="canvas-wrap">
@@ -589,6 +616,7 @@ let difficulty = 'normal';
 function selectDiff(d) {
   difficulty = d;
   Audio.playMenu();
+  updateContinueBtn();
   document.querySelectorAll('.diff-btn').forEach(b => {
     b.classList.remove('active');
     if(b.id==='d-practice'){ b.style.borderColor=''; b.style.color=''; b.style.background=''; }
@@ -607,6 +635,25 @@ function selectDiff(d) {
     btn.style.borderColor=''; btn.style.color=''; btn.style.background='';
   }
   document.getElementById('home-desc').textContent = DIFF_DESCS[d];
+}
+
+function continueGame() {
+  const save = loadSave();
+  if(!save) return;
+  document.getElementById('home').classList.add('hidden');
+  difficulty = save.difficulty;
+  document.getElementById('s-diff').textContent = DIFF_LABELS[difficulty]||'NRM';
+  // Restore difficulty settings
+  if(difficulty==='easy'){ settings.suddendeath=false; settings.earlybombs=false; settings.timer=true; }
+  else if(difficulty==='normal'){ settings.suddendeath=true; settings.earlybombs=false; settings.timer=false; }
+  else if(difficulty==='hard'){ settings.suddendeath=true; settings.earlybombs=true; settings.timer=false; }
+  else if(difficulty==='expert'){ settings.suddendeath=true; settings.earlybombs=true; settings.timer=false; }
+  G.score = save.score;
+  G.level = save.level;
+  G.lives = save.lives;
+  G._levelStartTime = Date.now();
+  updateLivesDisplay();
+  startLevel();
 }
 
 function launchGame() {
@@ -643,10 +690,12 @@ function launchGame() {
     G.lives = 1;
   }
   G.score = 0; G.level = 1;
-  G._shotsSinceHit = {}; // track first-hit for bonus
+  G._shotsSinceHit = {};
   G._levelStartTime = Date.now();
   updateLivesDisplay();
-  startLevel();
+  // Show map first — player taps their level to begin
+  document.getElementById('home').classList.add('hidden');
+  showLevelMap(0);
 }
 
 function placePracticeBall() {
@@ -684,12 +733,68 @@ function startPractice() {
   refreshStrip();
 }
 
+
+
+// ── Level progress tracking ────────────────────────────────────────────────
+function getLevelProgress() {
+  try { return JSON.parse(localStorage.getItem('bb_progress_'+difficulty)||'{}'); } catch(e){ return {}; }
+}
+function saveLevelProgress(lvl, stars, score) {
+  const prog = getLevelProgress();
+  const existing = prog[lvl] || {stars:0, score:0};
+  prog[lvl] = {
+    stars: Math.max(existing.stars, stars),
+    score: Math.max(existing.score, score),
+    completed: true
+  };
+  try { localStorage.setItem('bb_progress_'+difficulty, JSON.stringify(prog)); } catch(e){}
+}
+function getStarsForLevel(lvl, wasScratched, shotsUsed, shotBudget, timeBonus) {
+  // 1 star = completed, 2 stars = under 75% shot budget, 3 stars = under 60% AND no scratch
+  let stars = 1;
+  const shotFraction = shotsUsed / shotBudget;
+  if(shotFraction <= 0.75) stars = 2;
+  if(shotFraction <= 0.60 && !wasScratched) stars = 3;
+  return stars;
+}
+
+// ── Save / Load game state ─────────────────────────────────────────────────
+function saveGame() {
+  try {
+    localStorage.setItem('bb_save', JSON.stringify({
+      difficulty, level:G.level, score:G.score, lives:G.lives
+    }));
+  } catch(e){}
+}
+
+function loadSave() {
+  try { return JSON.parse(localStorage.getItem('bb_save')||'null'); } catch(e){ return null; }
+}
+
+function clearSave() {
+  try { localStorage.removeItem('bb_save'); } catch(e){}
+}
+
+function updateContinueBtn() {
+  const save = loadSave();
+  const btn = document.getElementById('btn-continue');
+  if(!btn) return;
+  if(save){
+    btn.style.display = 'block';
+    const diffLabel = {easy:'Easy',normal:'Normal',hard:'Hard',expert:'Expert'}[save.difficulty]||'Normal';
+    btn.textContent = `▶ CONTINUE — ${diffLabel} · Lvl ${save.level} · ${save.score.toLocaleString()} pts`;
+  } else {
+    btn.style.display = 'none';
+  }
+}
+
 function goHome() {
   document.getElementById('overlay').classList.add('hidden');
   document.getElementById('home').classList.remove('hidden');
   G.phase = 'idle';
   G.cue = null; G.balls = [];
   Audio.playMenu();
+  updateContinueBtn();
 }
 
 function updateLivesDisplay() {
@@ -1573,11 +1678,9 @@ function physics() {
       }
     }
     if(G._practiceMode){
-      // Reset cue ball to start position
+      // Cue ball stays where it stopped — just zero velocity
       G.cue.vx=0; G.cue.vy=0; G.cue._distTravelled=0;
-      G.cue.x = T.isPortrait ? T.ix+Math.round(T.iw/2) : T.ix+Math.round(T.iw*0.25);
-      G.cue.y = T.isPortrait ? T.iy+Math.round(T.ih*0.72) : T.iy+Math.round(T.ih/2);
-      // Reset target ball to its start position
+      // Reset target ball only — cue ball keeps its position
       for(const b of G.balls){
         if(b._practiceOriginX !== undefined){
           b.x=b._practiceOriginX; b.y=b._practiceOriginY;
@@ -1585,7 +1688,6 @@ function physics() {
           b.neverHit=true; b.hitCount=0;
         }
       }
-      G.aimAngle = T.isPortrait ? -Math.PI/2 : 0;
       G.combo=0;
     } else {
       checkEnd();
@@ -1667,9 +1769,14 @@ function checkEnd() {
     if(G.level>=MAX_LEVEL){
       showRankings(true);
     } else {
+      // Calculate and save stars for this level
+      const lvlStars = getStarsForLevel(G.level, G._scratchedThisLevel, G.shotsUsed, G.shotBudget);
+      saveLevelProgress(G.level, lvlStars, G.score);
+      saveGame();
       Audio.sfxLevelClear();
-      showOver('CLEARED!','Level '+G.level+' done! +'+bonus+' pts'+bonusMsg,false);
       G.level++;
+      // Show map instead of simple overlay
+      showLevelMap(G.level - 1); // pass the level we just completed
     }
   }
 }
@@ -1753,6 +1860,7 @@ function triggerLoss(x, y) {
 
 function showRankings(champion) {
   G.phase='idle';
+  clearSave(); // clear save on game over or completion
   if(champion) Audio.sfxLevelClear(); else Audio.sfxGameOver();
   Audio.playMenu();
   const entry = { score:G.score, level:G.level, diff:difficulty, name:'YOU', date:new Date().toLocaleDateString(), bestStreak:G.streak };
@@ -3204,6 +3312,319 @@ const Audio = (() => {
 // ── Hook audio to user interaction (required by browsers) ────────────────────
 document.addEventListener('click', () => Audio.init(), {once: true});
 document.addEventListener('touchstart', () => Audio.init(), {once: true});
+
+
+// ── Level Map ─────────────────────────────────────────────────────────────
+let _mapJustCleared = 0; // level just completed, to highlight
+
+let _mapAnimFrame = null;
+function showLevelMap(justCleared) {
+  _mapJustCleared = justCleared || 0;
+  document.getElementById('overlay').classList.add('hidden');
+  document.getElementById('app').style.display = 'none';
+  document.getElementById('levelmap').classList.remove('hidden');
+  document.getElementById('map-diff-label').textContent =
+    ({easy:'Easy',normal:'Normal',hard:'Hard',expert:'Expert'}[difficulty]||'Normal') + ' mode';
+  // Animated loop
+  if(_mapAnimFrame) cancelAnimationFrame(_mapAnimFrame);
+  function mapLoop(){ drawLevelMap(); _mapAnimFrame=requestAnimationFrame(mapLoop); }
+  mapLoop();
+  // Click/tap
+  const mc = document.getElementById('map-canvas');
+  mc.onclick = mc.ontouchend = function(e){
+    e.preventDefault();
+    const rect = mc.getBoundingClientRect();
+    const ex = (e.changedTouches ? e.changedTouches[0].clientX : e.clientX) - rect.left;
+    const ey = (e.changedTouches ? e.changedTouches[0].clientY : e.clientY) - rect.top;
+    handleMapClick(ex * (mc.width/rect.width), ey * (mc.height/rect.height));
+  };
+}
+
+function mapGoHome() {
+  if(_mapAnimFrame){ cancelAnimationFrame(_mapAnimFrame); _mapAnimFrame=null; }
+  document.getElementById('levelmap').classList.add('hidden');
+  document.getElementById('app').style.display = '';
+  document.getElementById('home').classList.remove('hidden');
+  Audio.playMenu();
+  updateContinueBtn();
+}
+
+function handleMapClick(mx, my) {
+  const nodes = getMapNodes();
+  const prog = getLevelProgress();
+  for(const node of nodes){
+    const dx = mx - node.x, dy = my - node.y;
+    if(Math.hypot(dx,dy) < node.r + 8){
+      const isUnlocked = node.lvl <= G.level;
+      if(isUnlocked){
+        // Jump to this level — preserve score and lives from current run
+        document.getElementById('levelmap').classList.add('hidden');
+        document.getElementById('app').style.display = '';
+        G.level = node.lvl;
+        startLevel();
+      }
+      return;
+    }
+  }
+}
+
+function getMapNodes() {
+  const mc = document.getElementById('map-canvas');
+  const W = mc.width, H = mc.height;
+  const cols = 4, rows = Math.ceil(MAX_LEVEL / cols);
+  const nodeR = Math.min(W / (cols * 3.2), H / (rows * 3.2), 28);
+  const padX = nodeR * 2.5, padY = nodeR * 2.8;
+  const cellW = (W - padX*2) / (cols-1);
+  const cellH = (H - padY*2) / (rows-1);
+  const nodes = [];
+  for(let i=0; i<MAX_LEVEL; i++){
+    const col = i % cols;
+    const row = Math.floor(i / cols);
+    // Zigzag: even rows left→right, odd rows right→left
+    const xCol = (row % 2 === 0) ? col : (cols - 1 - col);
+    nodes.push({
+      lvl: i+1,
+      x: padX + xCol * cellW,
+      y: padY + row * cellH,
+      r: nodeR
+    });
+  }
+  return nodes;
+}
+
+function drawLevelMap() {
+  const mc = document.getElementById('map-canvas');
+  const rect = mc.parentElement.getBoundingClientRect();
+  mc.width  = Math.min(rect.width - 24, 600);
+  mc.height = mc.parentElement.clientHeight - 120;
+  const ctx2 = mc.getContext('2d');
+  const W = mc.width, H = mc.height;
+  const prog = getLevelProgress();
+  const nodes = getMapNodes();
+  const now = Date.now() / 1000;
+
+  // ── Dark felt background ─────────────────────────────────────────────────
+  const bg = ctx2.createLinearGradient(0,0,W,H);
+  bg.addColorStop(0,'#0a2010'); bg.addColorStop(1,'#060f08');
+  ctx2.fillStyle=bg; ctx2.fillRect(0,0,W,H);
+
+  // Subtle cloth weave
+  ctx2.save(); ctx2.globalAlpha=0.03;
+  for(let y=0;y<H;y+=4) for(let x=0;x<W;x+=4){
+    if((x+y)%8===0){ ctx2.fillStyle='#fff'; ctx2.fillRect(x,y,2,1); }
+  }
+  ctx2.restore();
+
+  // ── Decorative scattered bombs in background ──────────────────────────────
+  const bombPositions = [
+    {x:W*0.08,y:H*0.12,s:0.55},{x:W*0.92,y:H*0.18,s:0.45},
+    {x:W*0.05,y:H*0.55,s:0.5},{x:W*0.95,y:H*0.62,s:0.48},
+    {x:W*0.12,y:H*0.88,s:0.52},{x:W*0.88,y:H*0.82,s:0.44},
+    {x:W*0.5,y:H*0.07,s:0.4},{x:W*0.5,y:H*0.93,s:0.42},
+  ];
+  bombPositions.forEach(({x,y,s})=>{
+    ctx2.save(); ctx2.globalAlpha=0.18; ctx2.translate(x,y); ctx2.scale(s,s);
+    drawMapBomb(ctx2, 0, 0, 22, now, false);
+    ctx2.restore();
+  });
+
+  // ── Explosion scorch marks on completed levels ────────────────────────────
+  nodes.forEach(node=>{
+    const d = prog[node.lvl];
+    if(!d||!d.completed) return;
+    // Scorch ring under each completed node
+    const sg = ctx2.createRadialGradient(node.x,node.y,2,node.x,node.y,node.r*2.2);
+    sg.addColorStop(0,'rgba(255,80,0,0.12)');
+    sg.addColorStop(0.5,'rgba(100,30,0,0.06)');
+    sg.addColorStop(1,'rgba(0,0,0,0)');
+    ctx2.beginPath(); ctx2.arc(node.x,node.y,node.r*2.2,0,Math.PI*2);
+    ctx2.fillStyle=sg; ctx2.fill();
+    // Scorch crack marks
+    ctx2.save(); ctx2.globalAlpha=0.15;
+    ctx2.strokeStyle='#331100'; ctx2.lineWidth=1.5;
+    for(let c=0;c<4;c++){
+      const a=node.ph+(c/4)*Math.PI*2;
+      ctx2.beginPath();
+      ctx2.moveTo(node.x+Math.cos(a)*node.r*1.1,node.y+Math.sin(a)*node.r*1.1);
+      ctx2.lineTo(node.x+Math.cos(a+0.3)*node.r*2,node.y+Math.sin(a+0.3)*node.r*2);
+      ctx2.stroke();
+    }
+    ctx2.restore();
+  });
+
+  // ── Fuse-style path ───────────────────────────────────────────────────────
+  for(let i=0; i<nodes.length-1; i++){
+    const a=nodes[i], b=nodes[i+1];
+    const unlocked = b.lvl <= G.level;
+    const mx=(a.x+b.x)/2+(b.y-a.y)*0.12, my=(a.y+b.y)/2-(b.x-a.x)*0.12;
+    // Outer glow for unlocked
+    if(unlocked){
+      ctx2.save(); ctx2.globalAlpha=0.3;
+      ctx2.strokeStyle='#ff8800'; ctx2.lineWidth=8; ctx2.lineCap='round';
+      ctx2.setLineDash([6,8]);
+      ctx2.beginPath(); ctx2.moveTo(a.x,a.y); ctx2.quadraticCurveTo(mx,my,b.x,b.y); ctx2.stroke();
+      ctx2.restore();
+    }
+    // Core fuse cord
+    ctx2.save(); ctx2.globalAlpha = unlocked ? 0.7 : 0.15;
+    ctx2.strokeStyle = unlocked ? '#cc7700' : '#333';
+    ctx2.lineWidth=3; ctx2.lineCap='round';
+    ctx2.setLineDash([5,7]);
+    ctx2.beginPath(); ctx2.moveTo(a.x,a.y); ctx2.quadraticCurveTo(mx,my,b.x,b.y); ctx2.stroke();
+    ctx2.setLineDash([]); ctx2.restore();
+    // Tiny bomb on midpoint of locked paths
+    if(!unlocked){
+      ctx2.save(); ctx2.globalAlpha=0.25; ctx2.translate(mx,my);
+      drawMapBomb(ctx2,0,0,8,now,false);
+      ctx2.restore();
+    }
+  }
+
+  // ── Wood rail border with brass inlay ────────────────────────────────────
+  const railW=10;
+  const woodGrad = ctx2.createLinearGradient(0,0,railW,0);
+  woodGrad.addColorStop(0,'#7a4f1a'); woodGrad.addColorStop(0.5,'#a0682a'); woodGrad.addColorStop(1,'#7a4f1a');
+  ctx2.strokeStyle=woodGrad; ctx2.lineWidth=railW;
+  ctx2.strokeRect(railW/2,railW/2,W-railW,H-railW);
+  ctx2.strokeStyle='#c8a832'; ctx2.lineWidth=2;
+  ctx2.strokeRect(railW+2,railW+2,W-railW*2-4,H-railW*2-4);
+
+  // ── Level nodes ───────────────────────────────────────────────────────────
+  const BALL_COLORS=['#e8302a','#e8851a','#f5d020','#2a8f2a','#2a50cc','#8b2299',
+                     '#cc2255','#1a1a1a','#f5c842','#2a7a2a','#e83030','#cc7700',
+                     '#d4c010','#1a7a1a','#1a40bb','#7a1a88','#bb1144','#222','#d4b030','#1a6a1a'];
+
+  nodes.forEach((node,i)=>{
+    const lvlData=prog[node.lvl]||{};
+    const isCompleted=lvlData.completed;
+    const isCurrent=node.lvl===G.level;
+    const isJustDone=node.lvl===_mapJustCleared;
+    const isUnlocked=node.lvl<=G.level;
+    const r=node.r;
+    const ballColor=BALL_COLORS[i%BALL_COLORS.length];
+    // Assign a stable phase per node
+    if(!node.ph) node.ph = (i*1.618)%Math.PI;
+
+    ctx2.save(); ctx2.translate(node.x,node.y);
+
+    // Pulse/glow
+    const pulse=Math.abs(Math.sin(now*2.5+i));
+    if(isCurrent){ ctx2.shadowBlur=22+8*pulse; ctx2.shadowColor='#ff6b00'; }
+    else if(isJustDone){ ctx2.shadowBlur=18; ctx2.shadowColor='#00ff88'; }
+
+    if(!isUnlocked){
+      // Locked bomb node
+      drawMapBomb(ctx2,0,0,r*0.85,now,false);
+      ctx2.fillStyle='rgba(255,255,255,0.15)';
+      ctx2.font=`${r*0.5}px sans-serif`;
+      ctx2.textAlign='center'; ctx2.textBaseline='middle';
+      ctx2.fillText('🔒',0,r*0.3);
+    } else {
+      // Coloured billiard ball
+      const bg2=ctx2.createRadialGradient(-r*0.35,-r*0.35,r*0.04,0,0,r);
+      bg2.addColorStop(0,lightenColor(ballColor,60));
+      bg2.addColorStop(0.5,ballColor);
+      bg2.addColorStop(1,darkenColor(ballColor,40));
+      ctx2.beginPath(); ctx2.arc(0,0,r,0,Math.PI*2); ctx2.fillStyle=bg2; ctx2.fill();
+      const rim2=ctx2.createRadialGradient(0,0,r*0.65,0,0,r);
+      rim2.addColorStop(0,'rgba(0,0,0,0)'); rim2.addColorStop(1,'rgba(0,0,0,0.4)');
+      ctx2.beginPath(); ctx2.arc(0,0,r,0,Math.PI*2); ctx2.fillStyle=rim2; ctx2.fill();
+      const spec=ctx2.createRadialGradient(-r*0.3,-r*0.35,0,-r*0.2,-r*0.2,r*0.4);
+      spec.addColorStop(0,'rgba(255,255,255,0.7)'); spec.addColorStop(1,'rgba(255,255,255,0)');
+      ctx2.beginPath(); ctx2.arc(0,0,r,0,Math.PI*2); ctx2.fillStyle=spec; ctx2.fill();
+      // Level number
+      ctx2.fillStyle='#fff'; ctx2.font=`bold ${r*0.65}px 'Arial Black',sans-serif`;
+      ctx2.textAlign='center'; ctx2.textBaseline='middle';
+      ctx2.strokeStyle='rgba(0,0,0,0.55)'; ctx2.lineWidth=3;
+      ctx2.strokeText(node.lvl,0,0); ctx2.fillText(node.lvl,0,0);
+      // Mini fuse on completed levels
+      if(isCompleted){
+        const fa=-Math.PI/4;
+        const fx1=Math.cos(fa)*r*0.9, fy1=Math.sin(fa)*r*0.9;
+        const fx2=Math.cos(fa)*r*1.7, fy2=Math.sin(fa)*r*1.7;
+        ctx2.strokeStyle='#cc8800'; ctx2.lineWidth=2; ctx2.lineCap='round';
+        ctx2.beginPath(); ctx2.moveTo(fx1,fy1); ctx2.lineTo(fx2,fy2); ctx2.stroke();
+        // Tiny spark
+        ctx2.fillStyle='#ffee44';
+        ctx2.beginPath(); ctx2.arc(fx2,fy2,2,0,Math.PI*2); ctx2.fill();
+      }
+    }
+
+    ctx2.shadowBlur=0;
+
+    // Stars
+    if(isCompleted && lvlData.stars){
+      const starStr='★'.repeat(lvlData.stars)+'☆'.repeat(3-lvlData.stars);
+      ctx2.font=`${r*0.42}px sans-serif`;
+      ctx2.textAlign='center'; ctx2.textBaseline='middle';
+      ctx2.fillStyle='#ffcc00';
+      ctx2.fillText(starStr,0,r+r*0.72);
+    }
+
+    // Current arrow (bounces)
+    if(isCurrent){
+      const bounce=Math.sin(now*4)*3;
+      ctx2.fillStyle='#ff6b00';
+      ctx2.font=`${r*0.8}px sans-serif`;
+      ctx2.textAlign='center'; ctx2.textBaseline='middle';
+      ctx2.fillText('▼',0,-r-r*0.65+bounce);
+    }
+
+    ctx2.restore();
+  });
+
+  // ── Animated cue ball rolling along the path near current level ───────────
+  const curIdx = Math.max(0, G.level-2);
+  if(curIdx < nodes.length-1){
+    const pa=nodes[curIdx], pb=nodes[Math.min(curIdx+1,nodes.length-1)];
+    const t2=(Math.sin(now*1.5)*0.5+0.5);
+    const cx2=pa.x+(pb.x-pa.x)*t2, cy2=pa.y+(pb.y-pa.y)*t2;
+    ctx2.save();
+    const cg=ctx2.createRadialGradient(cx2-4,cy2-4,1,cx2,cy2,10);
+    cg.addColorStop(0,'#fff'); cg.addColorStop(0.6,'#d8d8d8'); cg.addColorStop(1,'#888');
+    ctx2.beginPath(); ctx2.arc(cx2,cy2,10,0,Math.PI*2); ctx2.fillStyle=cg; ctx2.fill();
+    ctx2.strokeStyle='rgba(0,0,0,0.3)'; ctx2.lineWidth=1; ctx2.stroke();
+    const spec2=ctx2.createRadialGradient(cx2-3,cy2-4,0,cx2-2,cy2-3,5);
+    spec2.addColorStop(0,'rgba(255,255,255,0.9)'); spec2.addColorStop(1,'rgba(255,255,255,0)');
+    ctx2.beginPath(); ctx2.arc(cx2,cy2,10,0,Math.PI*2); ctx2.fillStyle=spec2; ctx2.fill();
+    ctx2.restore();
+  }
+}
+
+// Helper: draw a bomb on the map canvas
+function drawMapBomb(c, x, y, r, now, lit) {
+  // Body
+  const bg=c.createRadialGradient(x-r*0.3,y-r*0.3,r*0.05,x,y,r);
+  bg.addColorStop(0,'#2a2a2a'); bg.addColorStop(1,'#000');
+  c.beginPath(); c.arc(x,y,r,0,Math.PI*2); c.fillStyle=bg; c.fill();
+  c.strokeStyle='rgba(255,255,255,0.3)'; c.lineWidth=1; c.stroke();
+  // Specular
+  const sp=c.createRadialGradient(x-r*0.3,y-r*0.35,0,x-r*0.2,y-r*0.2,r*0.4);
+  sp.addColorStop(0,'rgba(255,255,255,0.4)'); sp.addColorStop(1,'rgba(255,255,255,0)');
+  c.beginPath(); c.arc(x,y,r,0,Math.PI*2); c.fillStyle=sp; c.fill();
+  // Fuse
+  const fa=-Math.PI/4;
+  const fx1=x+Math.cos(fa)*r*0.85, fy1=y+Math.sin(fa)*r*0.85;
+  const fx2=x+Math.cos(fa)*r*1.9,  fy2=y+Math.sin(fa)*r*1.9;
+  c.strokeStyle='#888'; c.lineWidth=Math.max(1,r*0.12); c.lineCap='round';
+  c.beginPath(); c.moveTo(fx1,fy1); c.lineTo(fx2,fy2); c.stroke();
+  // Spark at tip
+  const flicker=0.7+0.3*Math.sin(now*18+x);
+  const sg=c.createRadialGradient(fx2,fy2,0,fx2,fy2,r*0.5*flicker);
+  sg.addColorStop(0,'rgba(255,255,180,0.95)');
+  sg.addColorStop(0.5,'rgba(255,120,0,0.7)');
+  sg.addColorStop(1,'rgba(255,40,0,0)');
+  c.beginPath(); c.arc(fx2,fy2,r*0.5*flicker,0,Math.PI*2); c.fillStyle=sg; c.fill();
+}
+
+function lightenColor(hex, amt) {
+  const n = parseInt(hex.replace('#',''),16);
+  return 'rgb('+Math.min(255,(n>>16)+amt)+','+Math.min(255,((n>>8)&255)+amt)+','+Math.min(255,(n&255)+amt)+')';
+}
+function darkenColor(hex, amt) {
+  const n = parseInt(hex.replace('#',''),16);
+  return 'rgb('+Math.max(0,(n>>16)-amt)+','+Math.max(0,((n>>8)&255)-amt)+','+Math.max(0,(n&255)-amt)+')';
+}
 
 </script>
 
