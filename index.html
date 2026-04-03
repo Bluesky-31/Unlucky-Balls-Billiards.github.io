@@ -471,7 +471,10 @@ border:1px solid rgba(255,80,80,0.35);">
 
 <div id="app">
   <div id="topbar">
-    <h1>🎱 LUCKY BALLS</h1>
+    <div style="display:flex;flex-direction:column;line-height:1.1;">
+      <h1 style="margin:0;">🎱 LUCKY BALLS</h1>
+      <span id="s-levelname" style="font-family:'Share Tech Mono',monospace;font-size:.45rem;letter-spacing:1px;color:#888;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:120px;">— CRUDE INTAKE —</span>
+    </div>
     <div class="stats">
       <div class="stat"><span class="stat-label">LVL</span><span class="stat-value" id="s-lvl">1</span></div>
       <div class="stat"><span class="stat-label">SCORE</span><span class="stat-value" id="s-score">0</span></div>
@@ -825,6 +828,49 @@ function updateLivesDisplay() {
   el.style.color = G.lives <= 1 ? '#ff2a2a' : '#ff6b00';
 }
 
+
+// ── Level & Zone names ────────────────────────────────────────────────────
+const ZONE_DATA = [
+  { // Zone 1: Option B — Refinery Process Areas (levels 1-4)
+    zone: 'CRUDE INTAKE',
+    accent: '#8b6914', bg: ['#1a1205','#0f0a03'],
+    levels: ['The Tank Farm','The Separator','The Dehydrator','The Crude Unit']
+  },
+  { // Zone 2: Option B continued (levels 5-8)
+    zone: 'DISTILLATION TOWER',
+    accent: '#cc6600', bg: ['#141414','#1e1818'],
+    levels: ['The Fractionator','The Stripper','The Overhead','The Reflux Drum']
+  },
+  { // Zone 3: Option C — Danger Zone (levels 9-12)
+    zone: 'NO IGNITION SOURCE',
+    accent: '#c87820', bg: ['#1a1205','#2a1e08'],
+    levels: ['Hot Work Zone','Restricted Area','Confined Space','Static Discharge']
+  },
+  { // Zone 4: Option D — Personality (levels 13-16)
+    zone: 'POINT OF NO RETURN',
+    accent: '#cc2200', bg: ['#1a0808','#200a0a'],
+    levels: ['Deep Water','The Grind','No Way Out','Last Chance']
+  },
+  { // Zone 5: Option E — Mix finale (levels 17-20)
+    zone: 'GROUND ZERO',
+    accent: '#ff4400', bg: ['#0a0505','#150808'],
+    levels: ['The Incinerator','The Cracker','The Last Shot','Lights Out']
+  }
+];
+
+function getZoneForLevel(lvl) {
+  const zi = Math.floor((lvl-1)/4);
+  return ZONE_DATA[Math.min(zi, ZONE_DATA.length-1)];
+}
+function getLevelName(lvl) {
+  const zone = getZoneForLevel(lvl);
+  const idx = (lvl-1) % 4;
+  return zone.levels[idx] || 'Level '+lvl;
+}
+function getZoneName(lvl) {
+  return getZoneForLevel(lvl).zone;
+}
+
 // ── Level data formula ────────────────────────────────────────────────────
 // Easy:   starts 3 balls/60s, +1 ball +10s per level, cap level 10 (12 balls/150s)
 // Normal: starts 4 balls/60s, +1 ball +9s  per level, cap level 10 (13 balls/141s)
@@ -1115,6 +1161,10 @@ function startLevel() {
   G._scratchedThisLevel=false; G._levelStartTime=Date.now();
   G.streak=0; G.shotsUsed=0; G.shotBudget=lvlData2.shotBudget;
   updateLivesDisplay(); updateStreakDisplay(); updateShotsDisplay();
+  // Update level name in topbar
+  document.getElementById('s-lvl').textContent = G.level;
+  const _lnEl=document.getElementById('s-levelname');
+  if(_lnEl) _lnEl.textContent = getZoneName(G.level)+' · '+getLevelName(G.level);
   Audio.playGame(false);
 
   G.cue = T.isPortrait
@@ -3362,10 +3412,21 @@ function openMapFromHome() {
 }
 
 function mapStartGame() {
-  // Start a fresh game with the map's current difficulty
+  // Start fresh game at level 1 with the selected difficulty
+  if(_mapAnimFrame){cancelAnimationFrame(_mapAnimFrame);_mapAnimFrame=null;}
   difficulty = _mapDiff;
-  selectDiff(difficulty);
-  launchGame();
+  // Apply difficulty presets
+  if(difficulty==='easy'){settings.suddendeath=false;settings.earlybombs=false;settings.timer=true;G.lives=3;}
+  else if(difficulty==='normal'){settings.suddendeath=true;settings.earlybombs=false;settings.timer=false;G.lives=2;}
+  else if(difficulty==='hard'){settings.suddendeath=true;settings.earlybombs=true;settings.timer=false;G.lives=1;}
+  else if(difficulty==='expert'){settings.suddendeath=true;settings.earlybombs=true;settings.timer=false;G.lives=1;}
+  G.score=0; G.level=1;
+  G._levelStartTime=Date.now();
+  document.getElementById('s-diff').textContent = DIFF_LABELS[difficulty]||'NRM';
+  updateLivesDisplay();
+  document.getElementById('levelmap').classList.add('hidden');
+  document.getElementById('app').style.display='flex';
+  setTimeout(()=>{ applyLayout(); resizeCanvas(); startLevel(); }, 30);
 }
 
 let _mapAnimFrame = null;
@@ -3396,7 +3457,7 @@ function showLevelMap(justCleared) {
 function mapGoHome() {
   if(_mapAnimFrame){ cancelAnimationFrame(_mapAnimFrame); _mapAnimFrame=null; }
   document.getElementById('levelmap').classList.add('hidden');
-  document.getElementById('app').style.display = '';
+  document.getElementById('app').style.display = 'flex';
   document.getElementById('home').classList.remove('hidden');
   Audio.playMenu();
   updateContinueBtn();
@@ -3413,7 +3474,7 @@ function handleMapClick(mx, my) {
       if(isUnlocked){
         if(_mapAnimFrame){cancelAnimationFrame(_mapAnimFrame);_mapAnimFrame=null;}
         document.getElementById('levelmap').classList.add('hidden');
-        document.getElementById('app').style.display='';
+        document.getElementById('app').style.display='flex';
         if(_mapDiff!==difficulty){
           difficulty=_mapDiff; selectDiff(difficulty);
           G.score=0; G.lives=difficulty==='easy'?3:difficulty==='normal'?2:1;
@@ -3430,22 +3491,26 @@ function handleMapClick(mx, my) {
 function getMapNodes() {
   const mc = document.getElementById('map-canvas');
   const W = mc.width, H = mc.height;
-  const cols = 4, rows = Math.ceil(MAX_LEVEL / cols);
-  const nodeR = Math.min(W / (cols * 3.2), H / (rows * 3.2), 28);
-  const padX = nodeR * 2.5, padY = nodeR * 2.8;
-  const cellW = (W - padX*2) / (cols-1);
-  const cellH = (H - padY*2) / (rows-1);
+  const COLS = 4, ZONE_ROWS = 5; // 5 zones, 4 levels each
+  const rowH3 = H / ZONE_ROWS;
+  const nodeR = Math.min(W/(COLS*3.0), rowH3*0.28, 26);
+  const padX = nodeR * 2.2;
+  const cellW = (W - padX*2) / (COLS-1);
   const nodes = [];
   for(let i=0; i<MAX_LEVEL; i++){
-    const col = i % cols;
-    const row = Math.floor(i / cols);
-    // Zigzag: even rows left→right, odd rows right→left
-    const xCol = (row % 2 === 0) ? col : (cols - 1 - col);
+    const zone = Math.floor(i/COLS);       // 0-4
+    const col  = i % COLS;                  // 0-3
+    // Zigzag: even zones L→R, odd zones R→L
+    const xCol = (zone%2===0) ? col : (COLS-1-col);
+    const zoneY = zone * rowH3;
+    // Nodes sit in the bottom 60% of each zone row (top has zone banner)
+    const nodeY = zoneY + rowH3*0.52 + (rowH3*0.35);
     nodes.push({
       lvl: i+1,
       x: padX + xCol * cellW,
-      y: padY + row * cellH,
-      r: nodeR
+      y: nodeY,
+      r: nodeR,
+      ph: (i*1.618)%Math.PI
     });
   }
   return nodes;
@@ -3540,13 +3605,14 @@ function drawLevelMap() {
   const now = Date.now() / 1000;
 
   // ── Zone definitions ─────────────────────────────────────────────────────
-  const ZONES = [
-    {name:'THE OIL FIELD',   lvls:[1,2,3,4],   bg:['#1a0f08','#2a1a0a'], accent:'#8b4513', grid:'#3a2010'},
-    {name:'THE REFINERY',    lvls:[5,6,7,8],   bg:['#141414','#1e1e1e'], accent:'#cc6600', grid:'#2a2a2a'},
-    {name:'THE ALKY UNIT',   lvls:[9,10,11,12],bg:['#1a1205','#2a1e08'], accent:'#c87820', grid:'#3a2a10'},
-    {name:'NO-PERMIT ZONE',  lvls:[13,14,15,16],bg:['#1a0808','#200a0a'],accent:'#cc2200', grid:'#2a1010'},
-    {name:'THE FLARE STACK', lvls:[17,18,19,20],bg:['#0a0505','#150808'],accent:'#ff4400', grid:'#2a1208'},
-  ];
+  // Build ZONES from ZONE_DATA
+  const ZONES = ZONE_DATA.map((z,i)=>({
+    name: z.zone,
+    lvls: [i*4+1,i*4+2,i*4+3,i*4+4],
+    bg:   z.bg,
+    accent: z.accent,
+    grid: z.bg[1]
+  }));
 
   // Background — draw each zone as a horizontal band
   const rowH2 = H / 5;
@@ -3555,12 +3621,32 @@ function drawLevelMap() {
     const zg = ctx2.createLinearGradient(0,zy,W,zy+rowH2);
     zg.addColorStop(0,zone.bg[0]); zg.addColorStop(1,zone.bg[1]);
     ctx2.fillStyle=zg; ctx2.fillRect(0,zy,W,rowH2);
-    // Zone label
-    ctx2.save(); ctx2.globalAlpha=0.18;
-    ctx2.fillStyle=zone.accent;
-    ctx2.font=`bold ${Math.min(rowH2*0.18,14)}px monospace`;
-    ctx2.textAlign='left'; ctx2.textBaseline='top';
-    ctx2.fillText('[ '+zone.name+' ]', 8, zy+4);
+    // Zone banner — bold and clearly visible
+    ctx2.save();
+    const bannerH = Math.min(rowH2*0.28, 20);
+    const bannerY = zy + rowH2*0.5 - bannerH*0.5;
+    // Banner background strip
+    ctx2.globalAlpha = 0.22;
+    ctx2.fillStyle = zone.accent;
+    ctx2.fillRect(0, bannerY, W, bannerH);
+    // Left accent bar
+    ctx2.globalAlpha = 0.6;
+    ctx2.fillRect(0, bannerY, 4, bannerH);
+    ctx2.fillRect(W-4, bannerY, 4, bannerH);
+    // Zone name text
+    ctx2.globalAlpha = 0.85;
+    ctx2.fillStyle = zone.accent;
+    ctx2.font = `bold ${Math.min(bannerH*0.65, 13)}px monospace`;
+    ctx2.textAlign = 'center';
+    ctx2.textBaseline = 'middle';
+    ctx2.shadowBlur = 6; ctx2.shadowColor = zone.accent;
+    ctx2.fillText('— ' + zone.name + ' —', W/2, bannerY + bannerH/2);
+    ctx2.shadowBlur = 0;
+    // Level range indicator
+    ctx2.globalAlpha = 0.5;
+    ctx2.font = `${Math.min(bannerH*0.45, 9)}px monospace`;
+    ctx2.fillStyle = '#ffffff';
+    ctx2.fillText('LVL ' + zone.lvls[0] + '–' + zone.lvls[zone.lvls.length-1], W/2, bannerY + bannerH*1.1 + 6);
     ctx2.restore();
     // Zone divider line
     if(zi>0){
@@ -3746,13 +3832,20 @@ function drawLevelMap() {
 
     ctx2.shadowBlur=0;
 
+    // Level name below node
+    ctx2.font=`${Math.max(r*0.35,7)}px monospace`;
+    ctx2.textAlign='center'; ctx2.textBaseline='middle';
+    ctx2.fillStyle=isUnlocked?nodeZone.accent:'rgba(80,80,80,0.5)';
+    ctx2.globalAlpha=isUnlocked?0.7:0.3;
+    ctx2.fillText(getLevelName(node.lvl), 0, r+r*0.75);
+    ctx2.globalAlpha=1;
     // Stars — terminal style
     if(isCompleted && lvlData.stars){
       const starStr='★'.repeat(lvlData.stars)+'☆'.repeat(3-lvlData.stars);
       ctx2.font=`${r*0.42}px sans-serif`;
       ctx2.textAlign='center'; ctx2.textBaseline='middle';
-      ctx2.fillStyle=lvlData.stars===3?'#00ff88':lvlData.stars===2?'#44cc88':'#228844';
-      ctx2.fillText(starStr,0,r+r*0.85);
+      ctx2.fillStyle=lvlData.stars===3?'#ffcc00':lvlData.stars===2?'#aa8800':'#664400';
+      ctx2.fillText(starStr,0,r+r*1.6);
     }
 
     // Current level indicator — blinking terminal cursor
