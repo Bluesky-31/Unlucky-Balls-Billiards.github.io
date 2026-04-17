@@ -770,7 +770,12 @@ function getLevelProgress(diff) {
   try { return JSON.parse(localStorage.getItem('bb_progress_'+d)||'{}'); } catch(e){ return {}; }
 }
 function saveLevelProgress(lvl, stars, score) {
+  // Defensive: refuse invalid level numbers
+  if(typeof lvl !== 'number' || lvl < 1 || lvl > MAX_LEVEL) return;
   const prog = getLevelProgress(difficulty);
+  // Defensive: can only mark N completed if N-1 is already completed (or lvl===1).
+  // Prevents any code path from accidentally flagging a never-played future level.
+  if(lvl > 1 && !(prog[lvl-1] && prog[lvl-1].completed)) return;
   const existing = prog[lvl] || {stars:0, score:0};
   prog[lvl] = {
     stars: Math.max(existing.stars, stars),
@@ -1161,11 +1166,11 @@ function generateCandidates(n, pattern, cueX, cueY) {
 function startLevel() {
   document.getElementById('overlay').classList.add('hidden');
   resizeCanvas();
-  const lvl  = getLevelData(G.level);
-  const lvlData2 = getLevelData(G.level);
+  const lvl = getLevelData(G.level);
   G.balls=[]; G.particles=[]; G.combo=0; G.explosion=null; G.phase='idle';
   G._scratchedThisLevel=false; G._levelStartTime=Date.now();
-  G.streak=0; G.shotsUsed=0; G.shotBudget=lvlData2.shotBudget;
+  G._levelCleared=false; // reset clear latch for this new level
+  G.streak=0; G.shotsUsed=0; G.shotBudget=lvl.shotBudget;
   updateLivesDisplay(); updateStreakDisplay(); updateShotsDisplay();
   // Update level name in topbar
   document.getElementById('s-lvl').textContent = G.level;
@@ -1816,9 +1821,14 @@ function explodeBall(b) {
 
 function checkEnd() {
   if(G.explosion && G.explosion.t < G.explosion.maxT) return;
+  if(G._levelCleared) return; // already cleared this level — prevent double-advance
   const targetBalls = G.balls;
   if(!targetBalls.some(b=>!b.potted&&!b.exploded)){
-    let bonus = G.level * 500;
+    G._levelCleared = true; // latch immediately so subsequent checkEnd() calls no-op
+    // Capture the level number RIGHT NOW so every save/display below uses the level
+    // actually just played — immune to any later mutation of G.level.
+    const clearedLvl = G.level;
+    let bonus = clearedLvl * 500;
     let bonusMsg = '';
 
     // Time bonus: percentage of time remaining on the ball with most time left
@@ -1826,37 +1836,33 @@ function checkEnd() {
       const alive = G.balls.filter(b=>b.isBomb&&!b.isDanger);
       if(alive.length === 0 && G._levelStartTime){
         const elapsed = (Date.now() - G._levelStartTime) / 1000;
-        const lvl = getLevelData(G.level);
-        const timeBonus = Math.max(0, Math.floor((1 - elapsed/lvl.t) * G.level * 300));
+        const lvl = getLevelData(clearedLvl);
+        const timeBonus = Math.max(0, Math.floor((1 - elapsed/lvl.t) * clearedLvl * 300));
         if(timeBonus > 0){ bonus += timeBonus; bonusMsg += ` ⚡+${timeBonus}time`; }
       }
     }
 
     // Perfect level bonus: no scratches (cue ball never potted this level)
     if(!G._scratchedThisLevel){
-      const perfectBonus = G.level * 200;
+      const perfectBonus = clearedLvl * 200;
       bonus += perfectBonus;
       bonusMsg += ` ✨+${perfectBonus}perfect`;
     }
 
     G.score += bonus;
 
-    if(G.level>=MAX_LEVEL){
-      saveLevelProgress(G.level, getStarsForLevel(G.level, G._scratchedThisLevel, G.shotsUsed, G.shotBudget), bonus);
-      G._levelStartTime = Date.now();
-      G._scratchedThisLevel = false;
+    const lvlStars = getStarsForLevel(clearedLvl, G._scratchedThisLevel, G.shotsUsed, G.shotBudget);
+    saveLevelProgress(clearedLvl, lvlStars, bonus);
+    G._levelStartTime = Date.now();
+    G._scratchedThisLevel = false;
+
+    if(clearedLvl >= MAX_LEVEL){
       showRankings(true);
     } else {
-      // Capture scratch BEFORE resetting, calculate stars correctly
-      const lvlStars = getStarsForLevel(G.level, G._scratchedThisLevel, G.shotsUsed, G.shotBudget);
-      saveLevelProgress(G.level, lvlStars, bonus); // save level bonus not cumulative score
-      G._levelStartTime = Date.now();
-      G._scratchedThisLevel = false;
-      saveGame();
       Audio.sfxLevelClear();
-      const justCleared = G.level;
-      G.level++;
-      showLevelMap(justCleared);
+      G.level = clearedLvl + 1;
+      saveGame(); // save AFTER increment so Continue resumes on the next level
+      showLevelMap(clearedLvl);
     }
   }
 }
@@ -3403,6 +3409,29 @@ let _mapJustCleared = 0; // level just completed, to highlight
 
 let _mapDiff = 'normal'; // which difficulty is shown on map
 
+// Hoisted once — built from ZONE_DATA so map render loop doesn't reallocate every frame
+const MAP_ZONES = ZONE_DATA.map((z,i)=>({
+  name: z.zone,
+  lvls: [i*4+1,i*4+2,i*4+3,i*4+4],
+  bg:   z.bg,
+  accent: z.accent,
+  grid: z.bg[1]
+}));
+// Reverse lookup: level number → zone object (O(1) instead of .find every frame)
+const MAP_ZONE_BY_LEVEL = {};
+MAP_ZONES.forEach(z=>{ z.lvls.forEach(l=>{ MAP_ZONE_BY_LEVEL[l] = z; }); });
+// Decorative bomb positions — normalized 0..1 coords, scaled at draw time
+const MAP_BOMB_POS = [
+  {nx:0.08,ny:0.12,s:0.55},{nx:0.92,ny:0.18,s:0.45},
+  {nx:0.05,ny:0.55,s:0.50},{nx:0.95,ny:0.62,s:0.48},
+  {nx:0.12,ny:0.88,s:0.52},{nx:0.88,ny:0.82,s:0.44},
+  {nx:0.50,ny:0.07,s:0.40},{nx:0.50,ny:0.93,s:0.42},
+];
+// Precomputed ball colors for level nodes
+const MAP_BALL_COLORS=['#e8302a','#e8851a','#f5d020','#2a8f2a','#2a50cc','#8b2299',
+                       '#cc2255','#1a1a1a','#f5c842','#2a7a2a','#e83030','#cc7700',
+                       '#d4c010','#1a7a1a','#1a40bb','#7a1a88','#bb1144','#222','#d4b030','#1a6a1a'];
+
 function setMapDiff(d) {
   _mapDiff = d;
   document.querySelectorAll('.map-diff-tab').forEach(b=>
@@ -3446,10 +3475,13 @@ function showLevelMap(justCleared) {
   _mapDiff = difficulty;
   document.querySelectorAll('.map-diff-tab').forEach(b=>
     b.classList.toggle('active', b.dataset.diff===_mapDiff));
-  // Force canvas size
+  // Force canvas size — mobile gets a taller canvas to give nodes room
   const mc = document.getElementById('map-canvas');
-  mc.width  = Math.min(window.innerWidth - 24, 600);
-  mc.height = Math.max(window.innerHeight - 200, 280);
+  const isMobile = window.innerWidth < 600;
+  mc.width  = Math.min(window.innerWidth - 16, 600);
+  mc.height = isMobile
+    ? Math.max(window.innerHeight - 140, 420)
+    : Math.max(window.innerHeight - 200, 280);
   // Show cleared banner if we just finished a level
   const banner  = document.getElementById('map-cleared-banner');
   const nextBtn = document.getElementById('map-next-btn');
@@ -3507,13 +3539,13 @@ function mapGoHome() {
 function handleMapClick(mx, my) {
   const nodes = getMapNodes();
   const prog = getLevelProgress(_mapDiff);
+  const isMobile = window.innerWidth < 600;
+  const hitPad = isMobile ? 12 : 8;
   for(const node of nodes){
     const dx = mx - node.x, dy = my - node.y;
-    if(Math.hypot(dx,dy) < node.r + 8){
-      const mapProg2 = getLevelProgress(_mapDiff);
+    if(Math.hypot(dx,dy) < node.r + hitPad){
       // Unlocked if level 1, OR previous level is completed in saved progress
-      const prevDone = node.lvl===1 || !!(getLevelProgress(_mapDiff)[node.lvl-1]||{}).completed;
-      const isUnlocked = prevDone;
+      const isUnlocked = node.lvl===1 || !!(prog[node.lvl-1]||{}).completed;
       if(isUnlocked){
         if(_mapAnimFrame){cancelAnimationFrame(_mapAnimFrame);_mapAnimFrame=null;}
         document.getElementById('levelmap').classList.add('hidden');
@@ -3539,9 +3571,13 @@ function handleMapClick(mx, my) {
 function getMapNodes() {
   const mc = document.getElementById('map-canvas');
   const W = mc.width, H = mc.height;
+  const isMobile = W < 600;
   const COLS = 4, ZONE_ROWS = 5; // 5 zones, 4 levels each
   const rowH3 = H / ZONE_ROWS;
-  const nodeR = Math.min(W/(COLS*3.0), rowH3*0.28, 26);
+  // Mobile: floor nodes at 28px (=56px tap target), desktop stays at 26 cap
+  const minR  = isMobile ? 28 : 18;
+  const maxR  = isMobile ? 34 : 26;
+  const nodeR = Math.max(minR, Math.min(W/(COLS*3.0), rowH3*0.28, maxR));
   const padX = nodeR * 2.2;
   const cellW = (W - padX*2) / (COLS-1);
   const nodes = [];
@@ -3551,7 +3587,7 @@ function getMapNodes() {
     // Zigzag: even zones L→R, odd zones R→L
     const xCol = (zone%2===0) ? col : (COLS-1-col);
     const zoneY = zone * rowH3;
-    // Nodes sit in the bottom 60% of each zone row (top has zone banner)
+    // Nodes sit in the bottom portion of each zone row (top has zone banner)
     const nodeY = zoneY + rowH3*0.52 + (rowH3*0.35);
     nodes.push({
       lvl: i+1,
@@ -3644,8 +3680,11 @@ function drawZoneDecor(c, zoneIdx, x, y, w, h, now, accent) {
 function drawLevelMap() {
   const mc = document.getElementById('map-canvas');
   // Use window size as reliable fallback — parent may have zero dims on startup
-  mc.width  = Math.min(window.innerWidth - 24, 600);
-  mc.height = Math.max(window.innerHeight - 200, 280);
+  const isMobile = window.innerWidth < 600;
+  mc.width  = Math.min(window.innerWidth - 16, 600);
+  mc.height = isMobile
+    ? Math.max(window.innerHeight - 140, 420)
+    : Math.max(window.innerHeight - 200, 280);
   const ctx2 = mc.getContext('2d');
   const W = mc.width, H = mc.height;
   const prog = getLevelProgress(_mapDiff);
@@ -3653,14 +3692,8 @@ function drawLevelMap() {
   const now = Date.now() / 1000;
 
   // ── Zone definitions ─────────────────────────────────────────────────────
-  // Build ZONES from ZONE_DATA
-  const ZONES = ZONE_DATA.map((z,i)=>({
-    name: z.zone,
-    lvls: [i*4+1,i*4+2,i*4+3,i*4+4],
-    bg:   z.bg,
-    accent: z.accent,
-    grid: z.bg[1]
-  }));
+  // Uses hoisted MAP_ZONES — no per-frame allocation
+  const ZONES = MAP_ZONES;
 
   // Background — draw each zone as a horizontal band
   const rowH2 = H / 5;
@@ -3669,22 +3702,27 @@ function drawLevelMap() {
     const zg = ctx2.createLinearGradient(0,zy,W,zy+rowH2);
     zg.addColorStop(0,zone.bg[0]); zg.addColorStop(1,zone.bg[1]);
     ctx2.fillStyle=zg; ctx2.fillRect(0,zy,W,rowH2);
-    // Zone banner — bold and clearly visible
+    // Zone banner — bold and clearly visible (larger on mobile for readability)
     ctx2.save();
-    const bannerH = Math.min(rowH2*0.28, 20);
+    const bannerH = isMobile
+      ? Math.min(rowH2*0.22, 28)
+      : Math.min(rowH2*0.28, 20);
     const bannerY = zy + rowH2*0.5 - bannerH*0.5;
     // Banner background strip
     ctx2.globalAlpha = 0.22;
     ctx2.fillStyle = zone.accent;
     ctx2.fillRect(0, bannerY, W, bannerH);
-    // Left accent bar
+    // Left/right accent bars
     ctx2.globalAlpha = 0.6;
     ctx2.fillRect(0, bannerY, 4, bannerH);
     ctx2.fillRect(W-4, bannerY, 4, bannerH);
     // Zone name text
-    ctx2.globalAlpha = 0.85;
+    ctx2.globalAlpha = 0.9;
     ctx2.fillStyle = zone.accent;
-    ctx2.font = `bold ${Math.min(bannerH*0.65, 13)}px monospace`;
+    const bannerFont = isMobile
+      ? Math.max(bannerH*0.55, 14)
+      : Math.min(bannerH*0.65, 13);
+    ctx2.font = `bold ${bannerFont}px monospace`;
     ctx2.textAlign = 'center';
     ctx2.textBaseline = 'middle';
     ctx2.shadowBlur = 6; ctx2.shadowColor = zone.accent;
@@ -3692,7 +3730,10 @@ function drawLevelMap() {
     ctx2.shadowBlur = 0;
     // Level range indicator
     ctx2.globalAlpha = 0.5;
-    ctx2.font = `${Math.min(bannerH*0.45, 9)}px monospace`;
+    const rangeFont = isMobile
+      ? Math.max(bannerH*0.35, 10)
+      : Math.min(bannerH*0.45, 9);
+    ctx2.font = `${rangeFont}px monospace`;
     ctx2.fillStyle = '#ffffff';
     ctx2.fillText('LVL ' + zone.lvls[0] + '–' + zone.lvls[zone.lvls.length-1], W/2, bannerY + bannerH*1.1 + 6);
     ctx2.restore();
@@ -3705,12 +3746,14 @@ function drawLevelMap() {
       ctx2.setLineDash([]);
       ctx2.restore();
     }
-    // Zone grid
-    ctx2.save(); ctx2.globalAlpha=0.06; ctx2.strokeStyle=zone.grid; ctx2.lineWidth=1;
-    for(let gx=0;gx<W;gx+=36){
-      ctx2.beginPath();ctx2.moveTo(gx,zy);ctx2.lineTo(gx,zy+rowH2);ctx2.stroke();
+    // Zone grid — skip on mobile (reduces clutter + saves perf)
+    if(!isMobile){
+      ctx2.save(); ctx2.globalAlpha=0.06; ctx2.strokeStyle=zone.grid; ctx2.lineWidth=1;
+      for(let gx=0;gx<W;gx+=36){
+        ctx2.beginPath();ctx2.moveTo(gx,zy);ctx2.lineTo(gx,zy+rowH2);ctx2.stroke();
+      }
+      ctx2.restore();
     }
-    ctx2.restore();
     // Decorative zone icons
     drawZoneDecor(ctx2, zi, 0, zy, W, rowH2, now, zone.accent);
   });
@@ -3733,17 +3776,15 @@ function drawLevelMap() {
   ctx2.restore();
 
   // ── Decorative scattered bombs in background ──────────────────────────────
-  const bombPositions = [
-    {x:W*0.08,y:H*0.12,s:0.55},{x:W*0.92,y:H*0.18,s:0.45},
-    {x:W*0.05,y:H*0.55,s:0.5},{x:W*0.95,y:H*0.62,s:0.48},
-    {x:W*0.12,y:H*0.88,s:0.52},{x:W*0.88,y:H*0.82,s:0.44},
-    {x:W*0.5,y:H*0.07,s:0.4},{x:W*0.5,y:H*0.93,s:0.42},
-  ];
-  bombPositions.forEach(({x,y,s})=>{
-    ctx2.save(); ctx2.globalAlpha=0.18; ctx2.translate(x,y); ctx2.scale(s,s);
-    drawMapBomb(ctx2, 0, 0, 22, now, false);
+  // Mobile: 3 bombs only (reduce clutter + perf); desktop: all 8
+  const bombCount = isMobile ? 3 : MAP_BOMB_POS.length;
+  for(let bi=0; bi<bombCount; bi++){
+    const bp = MAP_BOMB_POS[bi];
+    ctx2.save(); ctx2.globalAlpha=0.18;
+    ctx2.translate(bp.nx*W, bp.ny*H); ctx2.scale(bp.s, bp.s);
+    drawMapBomb(ctx2, 0, 0, 22, now);
     ctx2.restore();
-  });
+  }
 
   // ── Explosion scorch marks on completed levels ────────────────────────────
   nodes.forEach(node=>{
@@ -3772,21 +3813,20 @@ function drawLevelMap() {
   // ── API wire connections ─────────────────────────────────────────────────
   for(let i=0; i<nodes.length-1; i++){
     const a=nodes[i], b=nodes[i+1];
-    const unlockedB = b.lvl===1 || !!(getLevelProgress(_mapDiff)[b.lvl-1]||{}).completed;
+    const unlockedB = b.lvl===1 || !!(prog[b.lvl-1]||{}).completed;
     const mx=(a.x+b.x)/2+(b.y-a.y)*0.1, my=(a.y+b.y)/2-(b.x-a.x)*0.1;
+    const zoneB = MAP_ZONE_BY_LEVEL[b.lvl] || ZONES[0];
     // Glow pulse on unlocked connections
     if(unlockedB){
       const pulse2=0.3+0.15*Math.sin(now*3+i);
       ctx2.save(); ctx2.globalAlpha=pulse2;
-      const zoneA=ZONES.find(z=>z.lvls.includes(b.lvl))||ZONES[0];
-      ctx2.strokeStyle=zoneA.accent; ctx2.lineWidth=6; ctx2.lineCap='round';
+      ctx2.strokeStyle=zoneB.accent; ctx2.lineWidth=6; ctx2.lineCap='round';
       ctx2.setLineDash([8,6]);
       ctx2.beginPath(); ctx2.moveTo(a.x,a.y); ctx2.quadraticCurveTo(mx,my,b.x,b.y); ctx2.stroke();
       ctx2.restore();
     }
     // Core wire
     ctx2.save(); ctx2.globalAlpha=unlockedB?0.8:0.15;
-    const zoneB=ZONES.find(z=>z.lvls.includes(b.lvl))||ZONES[0];
     ctx2.strokeStyle=unlockedB?zoneB.accent:'#1a1a1a';
     ctx2.lineWidth=2; ctx2.lineCap='round'; ctx2.setLineDash([5,6]);
     ctx2.beginPath(); ctx2.moveTo(a.x,a.y); ctx2.quadraticCurveTo(mx,my,b.x,b.y); ctx2.stroke();
@@ -3811,138 +3851,165 @@ function drawLevelMap() {
   ctx2.globalAlpha=1;
 
   // ── Level nodes ───────────────────────────────────────────────────────────
-  const BALL_COLORS=['#e8302a','#e8851a','#f5d020','#2a8f2a','#2a50cc','#8b2299',
-                     '#cc2255','#1a1a1a','#f5c842','#2a7a2a','#e83030','#cc7700',
-                     '#d4c010','#1a7a1a','#1a40bb','#7a1a88','#bb1144','#222','#d4b030','#1a6a1a'];
-
   nodes.forEach((node,i)=>{
     const lvlData=prog[node.lvl]||{};
-    const isCompleted=lvlData.completed;
-    const isCurrent=node.lvl===G.level;
+    const isCompleted=!!lvlData.completed;
+    // Unlocked if level 1, OR previous level completed in saved progress
+    const isUnlocked=node.lvl===1 || !!(prog[node.lvl-1]||{}).completed;
+    // "Next" = unlocked but not yet completed (the level the player should play)
+    const isNext=isUnlocked && !isCompleted;
     const isJustDone=node.lvl===_mapJustCleared;
-    // Unlocked if level 1, OR previous level completed
-    const isUnlocked=node.lvl===1 || !!(getLevelProgress(_mapDiff)[node.lvl-1]||{}).completed;
     const r=node.r;
-    const ballColor=BALL_COLORS[i%BALL_COLORS.length];
-    // Always define nodeZone so level name / stars can use it
-    const nodeZone=ZONES.find(z=>z.lvls.includes(node.lvl))||ZONES[0];
+    const ballColor=MAP_BALL_COLORS[i%MAP_BALL_COLORS.length];
+    // Always define nodeZone so level name / stars can use it (O(1) lookup)
+    const nodeZone = MAP_ZONE_BY_LEVEL[node.lvl] || ZONES[0];
     if(!node.ph) node.ph = (i*1.618)%Math.PI;
 
     ctx2.save(); ctx2.translate(node.x,node.y);
 
-    // Pulse/glow
+    // Pulse/glow — only the "next playable" level pulses orange.
+    // Completed levels get a soft green glow (just-done gets stronger).
     const pulse=Math.abs(Math.sin(now*2.5+i));
-    if(isCurrent){ ctx2.shadowBlur=22+8*pulse; ctx2.shadowColor='#ff6b00'; }
+    if(isNext){ ctx2.shadowBlur=20+8*pulse; ctx2.shadowColor='#ff6b00'; }
     else if(isJustDone){ ctx2.shadowBlur=18; ctx2.shadowColor='#00ff88'; }
 
     if(!isUnlocked){
       // Locked: dim hex with error styling
       ctx2.beginPath();
-      for(let h=0;h<6;h++){const ha=h*Math.PI/3-Math.PI/6;h===0?ctx2.moveTo(Math.cos(ha)*r,Math.sin(ha)*r):ctx2.lineTo(Math.cos(ha)*r,Math.sin(ha)*r);}
+      for(let h=0;h<6;h++){
+        const ha=h*Math.PI/3-Math.PI/6;
+        if(h===0) ctx2.moveTo(Math.cos(ha)*r,Math.sin(ha)*r);
+        else      ctx2.lineTo(Math.cos(ha)*r,Math.sin(ha)*r);
+      }
       ctx2.closePath();
       ctx2.fillStyle='#0a1a0a'; ctx2.fill();
       ctx2.strokeStyle='#1a2a1a'; ctx2.lineWidth=1.5; ctx2.stroke();
-      ctx2.fillStyle='rgba(0,80,30,0.4)';
-      ctx2.font=`${r*0.55}px monospace`;
+      ctx2.fillStyle='rgba(0,80,30,0.5)';
+      ctx2.font=`${Math.max(r*0.55, isMobile?14:10)}px monospace`;
       ctx2.textAlign='center'; ctx2.textBaseline='middle';
       ctx2.fillText('?',0,0);
-      ctx2.fillStyle='rgba(0,100,40,0.3)';
-      ctx2.font=`${r*0.3}px monospace`;
+      ctx2.fillStyle='rgba(0,100,40,0.4)';
+      ctx2.font=`${Math.max(r*0.3, isMobile?10:8)}px monospace`;
       ctx2.fillText('locked',0,r*1.3);
     } else {
       // API Inspector node — hexagonal terminal badge style
+      // Completed → ball color; Next (unlocked/uncompleted) → dark green
       const nodeColor = isCompleted ? ballColor : '#1a3a2a';
-      const borderCol = isCompleted ? nodeZone.accent : '#1a1a1a';
+      const borderCol = isCompleted ? nodeZone.accent
+                     : isNext       ? '#ff6b00'      // bright orange ring for "next"
+                                    : '#1a1a1a';
       // Hex shape
       ctx2.beginPath();
       for(let h=0;h<6;h++){
         const ha=h*Math.PI/3-Math.PI/6;
-        h===0?ctx2.moveTo(Math.cos(ha)*r,Math.sin(ha)*r):ctx2.lineTo(Math.cos(ha)*r,Math.sin(ha)*r);
+        if(h===0) ctx2.moveTo(Math.cos(ha)*r,Math.sin(ha)*r);
+        else      ctx2.lineTo(Math.cos(ha)*r,Math.sin(ha)*r);
       }
       ctx2.closePath();
       const bg2=ctx2.createRadialGradient(-r*0.3,-r*0.3,r*0.05,0,0,r);
       bg2.addColorStop(0,lightenColor(nodeColor,30)); bg2.addColorStop(1,darkenColor(nodeColor,20));
       ctx2.fillStyle=bg2; ctx2.fill();
-      ctx2.strokeStyle=borderCol; ctx2.lineWidth=2;
+      ctx2.strokeStyle=borderCol; ctx2.lineWidth=isNext?2.5:2;
       const glow3=0.5+0.3*Math.sin(now*2+node.lvl);
-      ctx2.shadowBlur=isCurrent?16:isCompleted?8:0; ctx2.shadowColor=borderCol;
+      ctx2.shadowBlur=isNext?14:isCompleted?8:0; ctx2.shadowColor=borderCol;
       ctx2.globalAlpha=glow3*0.8+0.2; ctx2.stroke(); ctx2.globalAlpha=1; ctx2.shadowBlur=0;
-      // Level number in monospace
-      ctx2.fillStyle=isCompleted?'#00ff88':'#006633';
-      ctx2.font=`bold ${r*0.62}px monospace`;
+      // Level number — size up on mobile for legibility
+      const numFont = Math.max(r*0.62, isMobile?16:11);
+      ctx2.fillStyle=isCompleted?'#00ff88':isNext?'#ffcc88':'#006633';
+      ctx2.font=`bold ${numFont}px monospace`;
       ctx2.textAlign='center'; ctx2.textBaseline='middle';
       ctx2.fillText(node.lvl,0,0);
-      // JSON tooltip above — "lvl_N: {status}"
+      // Status tick above the hex
       const statusStr = isCompleted ? '✓' : '→';
-      ctx2.fillStyle=isCompleted?'rgba(0,255,136,0.5)':'rgba(0,102,51,0.4)';
-      ctx2.font=`${r*0.32}px monospace`;
+      ctx2.fillStyle=isCompleted?'rgba(0,255,136,0.6)':'rgba(255,150,80,0.5)';
+      ctx2.font=`${Math.max(r*0.32, isMobile?11:8)}px monospace`;
       ctx2.fillText(statusStr,0,-r*1.3);
     }
 
     ctx2.shadowBlur=0;
 
-    // Level name below node
-    ctx2.font=`${Math.max(r*0.35,7)}px monospace`;
+    // Level name below node — larger on mobile
+    const nameFont = isMobile
+      ? Math.max(r*0.38, 11)
+      : Math.max(r*0.35, 8);
+    ctx2.font=`${nameFont}px monospace`;
     ctx2.textAlign='center'; ctx2.textBaseline='middle';
     ctx2.fillStyle=isUnlocked?nodeZone.accent:'rgba(80,80,80,0.5)';
-    ctx2.globalAlpha=isUnlocked?0.7:0.3;
+    ctx2.globalAlpha=isUnlocked?0.8:0.35;
     ctx2.fillText(getLevelName(node.lvl), 0, r+r*0.75);
     ctx2.globalAlpha=1;
-    // Stars — large and bright
+    // Stars — ABOVE the node (the reward sits on top, like a crown)
     if(isCompleted){
       const s = lvlData.stars||1;
-      // Star glow background
+      // Star y-position above node; leave more clearance above when "next" hand will overlay
+      const starY = -r - r*0.9;
+      // Star glow background for 3 stars
       if(s===3){
         ctx2.save();
-        const sg=ctx2.createRadialGradient(0,r+r*1.3,0,0,r+r*1.3,r*1.2);
-        sg.addColorStop(0,'rgba(255,200,0,0.3)'); sg.addColorStop(1,'rgba(255,200,0,0)');
-        ctx2.beginPath(); ctx2.arc(0,r+r*1.3,r*1.2,0,Math.PI*2); ctx2.fillStyle=sg; ctx2.fill();
+        const sg=ctx2.createRadialGradient(0,starY,0,0,starY,r*1.2);
+        sg.addColorStop(0,'rgba(255,200,0,0.35)'); sg.addColorStop(1,'rgba(255,200,0,0)');
+        ctx2.beginPath(); ctx2.arc(0,starY,r*1.2,0,Math.PI*2); ctx2.fillStyle=sg; ctx2.fill();
         ctx2.restore();
       }
       const starStr='★'.repeat(s)+'☆'.repeat(3-s);
-      const starSize=Math.max(r*0.6,9);
+      const starSize = isMobile ? Math.max(r*0.6, 14) : Math.max(r*0.6, 9);
       ctx2.font=`${starSize}px sans-serif`;
       ctx2.textAlign='center'; ctx2.textBaseline='middle';
       ctx2.shadowBlur=s===3?8:0; ctx2.shadowColor='#ffcc00';
       ctx2.fillStyle=s===3?'#ffcc00':s===2?'#cc9900':'#886600';
-      ctx2.fillText(starStr,0,r+r*1.65);
+      ctx2.fillText(starStr,0,starY);
       ctx2.shadowBlur=0;
-    }
-
-    // Current level indicator — blinking terminal cursor
-    if(isCurrent){
-      const blink=Math.sin(now*5)>0;
-      if(blink){
-        ctx2.fillStyle='#00ff88';
-        ctx2.font=`bold ${r*0.55}px monospace`;
-        ctx2.textAlign='center'; ctx2.textBaseline='middle';
-        ctx2.fillText('▶ HERE',0,-r-r*0.8);
-      }
     }
 
     ctx2.restore();
   });
 
-  // ── Animated cue ball rolling along the path near current level ───────────
-  const curIdx = Math.max(0, G.level-2);
-  if(curIdx < nodes.length-1){
-    const pa=nodes[curIdx], pb=nodes[Math.min(curIdx+1,nodes.length-1)];
-    const t2=(Math.sin(now*1.5)*0.5+0.5);
-    const cx2=pa.x+(pb.x-pa.x)*t2, cy2=pa.y+(pb.y-pa.y)*t2;
-    ctx2.save();
-    const cg=ctx2.createRadialGradient(cx2-4,cy2-4,1,cx2,cy2,10);
-    cg.addColorStop(0,'#fff'); cg.addColorStop(0.6,'#d8d8d8'); cg.addColorStop(1,'#888');
-    ctx2.beginPath(); ctx2.arc(cx2,cy2,10,0,Math.PI*2); ctx2.fillStyle=cg; ctx2.fill();
-    ctx2.strokeStyle='rgba(0,0,0,0.3)'; ctx2.lineWidth=1; ctx2.stroke();
-    const spec2=ctx2.createRadialGradient(cx2-3,cy2-4,0,cx2-2,cy2-3,5);
-    spec2.addColorStop(0,'rgba(255,255,255,0.9)'); spec2.addColorStop(1,'rgba(255,255,255,0)');
-    ctx2.beginPath(); ctx2.arc(cx2,cy2,10,0,Math.PI*2); ctx2.fillStyle=spec2; ctx2.fill();
-    ctx2.restore();
+  // ── Mario-style white-glove pointing hand over the current target level ───
+  // Target = G.level (= last clicked/played level). Clamp so it never points
+  // past the newest available (unlocked) node, in case G.level got ahead.
+  let targetLvl = Math.max(1, Math.min(G.level || 1, MAX_LEVEL));
+  // Highest unlocked level = highest N where prog[N-1].completed (or 1)
+  let highestUnlocked = 1;
+  for(let L=2; L<=MAX_LEVEL; L++){
+    if(prog[L-1] && prog[L-1].completed) highestUnlocked = L;
+    else break;
+  }
+  if(targetLvl > highestUnlocked) targetLvl = highestUnlocked;
+  const targetNode = nodes[targetLvl - 1];
+  if(targetNode){
+    drawPointingHand(ctx2, targetNode.x, targetNode.y, targetNode.r, now);
   }
 }
 
+// Render the pointing hand image above the target node
+function drawPointingHand(c, tx, ty, nodeR, now){
+  // Preload hand image if not already loaded
+  if(!window._handImg){
+    window._handImg = new Image();
+    window._handImg.src = 'data:image/jpeg;base64,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';
+  }
+
+  c.save();
+
+  // Gentle bob for attention
+  const bob = Math.sin(now*3) * 3;
+  const scale = Math.max(0.9, Math.min(1.2, nodeR / 20));
+  const handSize = 80 * scale;
+  
+  // Position: above and left of the node
+  const x = tx - nodeR * 0.3;
+  const y = ty - nodeR * 1.2 + bob;
+
+  // Draw the hand image
+  if(window._handImg && window._handImg.complete){
+    c.drawImage(window._handImg, x, y, handSize, handSize);
+  }
+
+  c.restore();
+}
+
 // Helper: draw a bomb on the map canvas
-function drawMapBomb(c, x, y, r, now, lit) {
+function drawMapBomb(c, x, y, r, now) {
   // Body
   const bg=c.createRadialGradient(x-r*0.3,y-r*0.3,r*0.05,x,y,r);
   bg.addColorStop(0,'#2a2a2a'); bg.addColorStop(1,'#000');
