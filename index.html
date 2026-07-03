@@ -297,6 +297,7 @@ overflow-y:auto;background:#0e0e0e;width:100%;height:100%;
   </button>
   <div style="display:flex;gap:12px;margin-top:4px;flex-wrap:wrap;justify-content:center;">
     <button id="home-start" onclick="launchGame()">💣 LIGHT FUSE</button>
+    <button onclick="MP.openLobby()" style="font-family:'Black Ops One',Impact,'Arial Black',fantasy,cursive;font-size:.9rem;letter-spacing:2px;padding:14px 22px;background:rgba(77,166,255,0.12);border:2px solid #4da6ff;border-radius:8px;color:#4da6ff;cursor:pointer;">🌐 1v1 ONLINE</button>
     <button onclick="openMapFromHome()" style="font-family:'Black Ops One',Impact,'Arial Black',fantasy,cursive;font-size:.9rem;letter-spacing:2px;padding:14px 22px;background:rgba(0,200,100,0.12);border:2px solid #00c864;border-radius:8px;color:#00c864;cursor:pointer;">🗺 MAP</button>
     <button onclick="openSettings()" style="font-family:'Black Ops One',Impact,'Arial Black',fantasy,cursive;font-size:.9rem;letter-spacing:2px;padding:14px 22px;background:transparent;border:2px solid #333;border-radius:8px;color:#666;cursor:pointer;">⚙ SETTINGS</button>
   </div>
@@ -318,6 +319,48 @@ border:1px solid rgba(255,80,80,0.35);">
 <span style="font-size:.65rem;color:#aaa;letter-spacing:1px;">— every bit helps!</span>
 </a>
 
+</div>
+
+<!-- MULTIPLAYER LOBBY -->
+
+<div id="mp-lobby" class="hidden" style="position:fixed;inset:0;z-index:200;background:rgba(8,8,8,0.97);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;text-align:center;overflow-y:auto;">
+  <div style="font-family:'Black Ops One',Impact,'Arial Black',fantasy,cursive;font-size:1.6rem;letter-spacing:3px;color:#4da6ff;margin-bottom:6px;">🌐 1v1 ONLINE</div>
+  <div style="font-size:.6rem;letter-spacing:2px;color:#666;margin-bottom:24px;text-transform:uppercase;">pot a ball → shoot again · miss or scratch → their turn · highest score wins</div>
+
+  <!-- MENU VIEW -->
+  <div id="mp-view-menu" style="display:flex;flex-direction:column;align-items:center;gap:14px;width:100%;max-width:340px;">
+    <input id="mp-name-in" type="text" maxlength="12" placeholder="YOUR NAME" autocomplete="off"
+      style="width:100%;box-sizing:border-box;background:#161616;border:2px solid #333;border-radius:8px;color:#eee;font-family:'Share Tech Mono',monospace;font-size:1rem;letter-spacing:2px;padding:12px 14px;text-align:center;text-transform:uppercase;">
+    <button onclick="MP.createRoom()"
+      style="width:100%;font-family:'Black Ops One',Impact,'Arial Black',fantasy,cursive;font-size:1rem;letter-spacing:2px;padding:16px;background:#4da6ff;border:none;border-radius:8px;color:#000;cursor:pointer;">➕ CREATE ROOM</button>
+    <div style="color:#555;font-size:.7rem;letter-spacing:3px;">— OR —</div>
+    <div style="display:flex;gap:10px;width:100%;">
+      <input id="mp-code-in" type="text" maxlength="4" placeholder="CODE" autocomplete="off"
+        style="flex:1;min-width:0;box-sizing:border-box;background:#161616;border:2px solid #333;border-radius:8px;color:#ffcc00;font-family:'Share Tech Mono',monospace;font-size:1.3rem;letter-spacing:6px;padding:10px;text-align:center;text-transform:uppercase;">
+      <button onclick="MP.joinRoom()"
+        style="font-family:'Black Ops One',Impact,'Arial Black',fantasy,cursive;font-size:.9rem;letter-spacing:2px;padding:12px 20px;background:rgba(0,230,118,0.15);border:2px solid #00e676;border-radius:8px;color:#00e676;cursor:pointer;">JOIN</button>
+    </div>
+  </div>
+
+  <!-- WAITING VIEW -->
+  <div id="mp-view-wait" style="display:none;flex-direction:column;align-items:center;gap:16px;">
+    <div style="font-size:.65rem;letter-spacing:2px;color:#888;">ROOM CODE — send this to your friend</div>
+    <div id="mp-code-show" onclick="MP.copyCode()" title="Tap to copy"
+      style="font-family:'Share Tech Mono',monospace;font-size:3rem;letter-spacing:14px;color:#ffcc00;background:#161616;border:2px dashed #4da6ff;border-radius:12px;padding:14px 20px 14px 34px;cursor:pointer;user-select:all;">----</div>
+    <div id="mp-copy-hint" style="font-size:.6rem;letter-spacing:1px;color:#555;">tap code to copy · they open the game → 1v1 ONLINE → JOIN</div>
+  </div>
+
+  <!-- RESULT VIEW -->
+  <div id="mp-view-result" style="display:none;flex-direction:column;align-items:center;gap:14px;">
+    <div id="mp-result-title" style="font-family:'Black Ops One',Impact,'Arial Black',fantasy,cursive;font-size:2rem;letter-spacing:3px;color:#00e676;"></div>
+    <div id="mp-result-sub" style="font-family:'Share Tech Mono',monospace;font-size:1rem;color:#ccc;letter-spacing:1px;"></div>
+    <button id="mp-rematch-btn" onclick="MP.requestRematch()"
+      style="font-family:'Black Ops One',Impact,'Arial Black',fantasy,cursive;font-size:.95rem;letter-spacing:2px;padding:14px 34px;background:#4da6ff;border:none;border-radius:8px;color:#000;cursor:pointer;">🔁 REMATCH</button>
+  </div>
+
+  <div id="mp-status" style="min-height:20px;margin-top:20px;font-family:'Share Tech Mono',monospace;font-size:.75rem;color:#ff6b00;letter-spacing:1px;"></div>
+  <button onclick="MP.closeLobby()"
+    style="margin-top:16px;font-family:'Black Ops One',Impact,'Arial Black',fantasy,cursive;font-size:.75rem;letter-spacing:2px;padding:10px 26px;background:transparent;border:2px solid #444;border-radius:8px;color:#888;cursor:pointer;">← BACK</button>
 </div>
 
 <!-- SETTINGS -->
@@ -512,6 +555,11 @@ border:1px solid rgba(255,80,80,0.35);">
   </div>
   <div id="canvas-wrap">
     <canvas id="game"></canvas>
+    <div id="mp-bar" class="hidden" style="position:absolute;top:6px;left:50%;transform:translateX(-50%);z-index:40;display:flex;align-items:center;gap:12px;background:rgba(0,0,0,0.8);border:1px solid #333;border-radius:20px;padding:6px 16px;font-family:'Share Tech Mono',monospace;font-size:.75rem;white-space:nowrap;pointer-events:none;">
+      <span id="mp-me" style="color:#00e676;"></span>
+      <span id="mp-turn" style="color:#ff6b00;font-weight:bold;"></span>
+      <span id="mp-opp" style="color:#4da6ff;"></span>
+    </div>
     <div id="combo-pop"></div>
     <div id="overlay" class="hidden">
       <div id="ov-title"></div>
@@ -538,6 +586,9 @@ border:1px solid rgba(255,80,80,0.35);">
     <div id="bomb-strip"></div>
   </div>
 </div>
+
+<!-- ── MULTIPLAYER: PeerJS (WebRTC, free public signaling — no server needed) ── -->
+<script src="https://unpkg.com/peerjs@1.5.5/dist/peerjs.min.js"></script>
 
 <script>
 // ── Difficulty ────────────────────────────────────────────────────────────
@@ -834,6 +885,7 @@ function updateContinueBtn() {
 }
 
 function goHome() {
+  if(G._mpMode) MP.leave(true);
   document.getElementById('overlay').classList.add('hidden');
   document.getElementById('home').classList.remove('hidden');
   G.phase = 'idle';
@@ -1268,6 +1320,7 @@ let aimTouchStart = 0;     // timestamp when touch began (ms)
 const SENSITIVITY = 0.005; // halved for softer fine-control // radians per pixel of horizontal drag
 
 document.addEventListener('touchstart', e => {
+  if (G._mpMode && !MP.myTurn) return;
   if (G.phase !== 'aiming' || !G.cue || spinDn) return;
   if (aimTouchId !== null) return;          // already tracking a finger
   const t = e.changedTouches[0];
@@ -1330,6 +1383,7 @@ document.addEventListener('touchcancel', e => {
 // ── Desktop mouse: cue always points from cue ball toward mouse cursor ──────
 // No clicking required — just move the mouse to aim, Space/Enter to fire.
 canvas.addEventListener('mousemove', e => {
+  if (G._mpMode && !MP.myTurn) return;
   if (settings.mobile) return; // mobile uses touch drag, not mouse position
   if (e.pointerType === 'touch') return; // block touch-generated mouse events
   if (G.phase !== 'aiming' || !G.cue) return;
@@ -1342,6 +1396,7 @@ canvas.addEventListener('mousemove', e => {
 // Click anywhere on canvas to shoot (desktop/mouse only)
 // pointerType==='mouse' ensures touch-generated synthetic clicks are ignored
 canvas.addEventListener('click', e => {
+  if (G._mpMode && !MP.myTurn) return;
   if (e.pointerType === 'touch') return; // ignore touch-generated clicks
   if (settings.mobile) return;
   if (G.phase !== 'aiming' || !G.cue) return;
@@ -1359,6 +1414,7 @@ canvas.addEventListener('pointerdown', e => {
 
 // Also track mouse even when it moves over the sidebar/controls area on desktop
 document.addEventListener('mousemove', e => {
+  if (G._mpMode && !MP.myTurn) return;
   if (G.phase !== 'aiming' || !G.cue) return;
   // Only apply if NOT on mobile (check if pointer is coarse/touch)
   if (window.matchMedia('(pointer:coarse)').matches) return;
@@ -1500,6 +1556,7 @@ document.getElementById('fire-btn').addEventListener('touchstart', e=>e.stopProp
 
 // ── Shoot ──────────────────────────────────────────────────────────────────
 function shoot() {
+  if(G._mpMode && !MP.myTurn) return; // multiplayer: not your turn
   const showingEarly = G.phase==='rolling' && G.cue && G.cue._showCue;
   if((G.phase!=='aiming' && !showingEarly)||!G.cue) return;
   // Table-scaled speed: scale the mobile formula by table size so the ball
@@ -1520,6 +1577,7 @@ function shoot() {
   G.shotsUsed++; updateShotsDisplay();
   G.spinX=0; G.spinY=0;
   spinCycleIdx=0; spinSubIdx=-1;
+  if(G._mpMode) MP.localShotStarted();
 }
 
 // ── Ray cast ───────────────────────────────────────────────────────────────
@@ -1604,7 +1662,7 @@ function moveBall(ball,isCue) {
     // Ball is potted when centre crosses pocket edge
     if(dist < pR){
       if(isCue){
-        if(settings.suddendeath){
+        if(settings.suddendeath && !G._mpMode){
           // Scratch = instant loss — trigger UNLUCKY BALLS at pocket position
           triggerLoss(p.x, p.y);
           return;
@@ -1613,6 +1671,7 @@ function moveBall(ball,isCue) {
         ball.x=T.isPortrait?T.ix+Math.round(T.iw/2):T.ix+Math.round(T.iw*0.25);
         ball.y=T.isPortrait?T.iy+Math.round(T.ih*0.75):T.iy+Math.round(T.ih/2);
         ball.vx=ball.vy=0;
+        if(G._mpMode) MP.onLocalScratch();
       } else {
         ball.potted=true; G.combo++;
         G.streak++;
@@ -1634,6 +1693,7 @@ function moveBall(ball,isCue) {
         else showCombo(ball.x,ball.y,G.combo,pts);
         G.score+=pts;
         G._pottedThisShot=true;
+        if(G._mpMode) MP.onLocalPot(ball, pts);
         updateStreakDisplay();
         refreshStrip();
         checkEnd();
@@ -1760,6 +1820,8 @@ function physics() {
       }
     }
     G._pottedThisShot = false;
+    // Multiplayer: turn logic replaces budget/practice/level flow
+    if(G._mpMode){ MP.localShotEnded(); return; }
     // Shot budget check
     if(G.shotBudget && G.shotsUsed >= G.shotBudget && !G._practiceMode){
       const remaining = G.balls.filter(b=>!b.potted&&!b.exploded&&!b.isDanger).length;
@@ -1789,6 +1851,7 @@ function physics() {
 
 // ── Timers ─────────────────────────────────────────────────────────────────
 function tickTimers(dt) {
+  if(G._mpMode) return; // multiplayer: no bomb timers
   if(G.phase!=='aiming'&&G.phase!=='rolling') return;
   let minTime = Infinity;
   for(const b of G.balls){
@@ -1830,6 +1893,7 @@ function explodeBall(b) {
 }
 
 function checkEnd() {
+  if(G._mpMode) return; // multiplayer: match end handled by MP.localShotEnded
   if(G.explosion && G.explosion.t < G.explosion.maxT) return;
   if(G._levelCleared) return; // already cleared this level — prevent double-advance
   const targetBalls = G.balls;
@@ -2442,6 +2506,7 @@ function drawCueStick(cx, cy, angle) {
 }
 
 function drawAimLine() {
+  if(G._mpMode && !MP.myTurn){ MP.drawOppAim(); return; }
   const showingEarly = G.phase==='rolling' && G.cue && G.cue._showCue;
   if((G.phase!=='aiming' && !showingEarly)||!G.cue) return;
   const{x,y,r}=G.cue;
@@ -2801,6 +2866,10 @@ function drawSpinPad() {
 function updateFireLock() {
   const btn = document.getElementById('fire-btn');
   if(!btn) return;
+  if(G._mpMode && !MP.myTurn){
+    btn.style.opacity='0.4'; btn.style.background='#555'; btn.textContent='THEIR TURN';
+    return;
+  }
   const locked = G.phase === 'rolling'; // locked while balls are still rolling
   btn.style.opacity = locked ? '0.4' : '1';
   btn.style.background = locked ? '#555' : '#ff6b00';
@@ -2834,6 +2903,7 @@ let lastTs=0;
 function loop(ts){
   const dt=Math.min((ts-lastTs)/1000,.05);lastTs=ts;
   if(G.phase!=='exploding') physics();
+  if(G._mpMode) MP.tick();
   // updateFireLock every frame so FIRE button reflects current state
   if(G.cue) updateFireLock();
   tickTimers(dt);tickParticles(dt);
@@ -3106,7 +3176,7 @@ function loop(ts){
 
   ctx.restore();
   document.getElementById('s-score').textContent=G.score;
-  document.getElementById('s-lvl').textContent=G.level;
+  document.getElementById('s-lvl').textContent=G._mpMode?'1v1':G.level;
   drawSpinPad();
   requestAnimationFrame(loop);
 }
@@ -4096,6 +4166,421 @@ function darkenColor(hex, amt) {
   const n = parseInt(hex.replace('#',''),16);
   return 'rgb('+Math.max(0,(n>>16)-amt)+','+Math.max(0,((n>>8)&255)-amt)+','+Math.max(0,(n&255)-amt)+')';
 }
+
+// ════════════════════════════════════════════════════════════════════════════
+// MULTIPLAYER — 1v1 online via PeerJS (WebRTC, room codes, no server needed)
+//
+// How it works:
+//  • Host creates a room → 4-letter code → guest joins with the code
+//  • Turn-based: pot a ball → shoot again · miss or scratch → turn passes
+//  • The shooter's device runs the physics and streams ball positions to the
+//    opponent (~20/s). At the end of each shot an authoritative snapshot syncs
+//    both tables exactly, so different devices/orientations never drift apart.
+//  • All positions travel as "canonical" coords: u along the table's long
+//    axis (0–1), v along the short axis (0–1). Each device maps those to its
+//    own table, so phone-portrait vs desktop-landscape just works.
+// ════════════════════════════════════════════════════════════════════════════
+const MP = {
+  active:false, peer:null, conn:null, isHost:false, myTurn:false,
+  myName:'', oppName:'', myScore:0, oppScore:0, code:'',
+  _pottedShot:false, _scratched:false, oppAim:null, _cueT:null,
+  _lastState:0, _lastAim:0, _first:'h', _inMatch:false,
+
+  // ── Canonical coordinate transforms ──────────────────────────────────────
+  toC(x,y){
+    if(T.iw >= T.ih) return [(x-T.ix)/T.iw, (y-T.iy)/T.ih];
+    return [(y-T.iy)/T.ih, 1-(x-T.ix)/T.iw];
+  },
+  toL(u,v){
+    if(T.iw >= T.ih) return [T.ix+u*T.iw, T.iy+v*T.ih];
+    return [T.ix+(1-v)*T.iw, T.iy+u*T.ih];
+  },
+  dirToC(dx,dy){
+    let du,dv;
+    if(T.iw >= T.ih){du=dx;dv=dy;} else {du=dy;dv=-dx;}
+    const m=Math.hypot(du,dv)||1; return [du/m,dv/m];
+  },
+  dirToL(du,dv){
+    let dx,dy;
+    if(T.iw >= T.ih){dx=du;dy=dv;} else {dx=-dv;dy=du;}
+    const m=Math.hypot(dx,dy)||1; return [dx/m,dy/m];
+  },
+
+  // ── Lobby UI ──────────────────────────────────────────────────────────────
+  openLobby(){
+    const saved = localStorage.getItem('bb_mp_name')||'';
+    document.getElementById('mp-name-in').value = saved;
+    document.getElementById('mp-code-in').value = '';
+    this._view('menu'); this._setStatus('');
+    document.getElementById('mp-lobby').classList.remove('hidden');
+  },
+  closeLobby(){
+    document.getElementById('mp-lobby').classList.add('hidden');
+    if(!this._inMatch) this._cleanup(false);
+    if(this._inMatch && G.phase==='idle'){ /* result view closed mid-match-over */ this.leave(false); }
+  },
+  _view(name){
+    document.getElementById('mp-view-menu').style.display   = name==='menu'  ? 'flex':'none';
+    document.getElementById('mp-view-wait').style.display   = name==='wait'  ? 'flex':'none';
+    document.getElementById('mp-view-result').style.display = name==='result'? 'flex':'none';
+  },
+  _setStatus(msg){ document.getElementById('mp-status').textContent = msg||''; },
+  _saveName(){
+    let n = document.getElementById('mp-name-in').value.trim().toUpperCase().slice(0,12);
+    if(!n) n = 'PLAYER';
+    this.myName = n;
+    try{ localStorage.setItem('bb_mp_name', n); }catch(e){}
+  },
+  copyCode(){
+    try{
+      navigator.clipboard.writeText(this.code);
+      document.getElementById('mp-copy-hint').textContent = '✓ copied!';
+      setTimeout(()=>{ document.getElementById('mp-copy-hint').textContent = 'tap code to copy · they open the game → 1v1 ONLINE → JOIN'; }, 1800);
+    }catch(e){}
+  },
+
+  // ── Connection setup ──────────────────────────────────────────────────────
+  _genCode(){
+    const A='ABCDEFGHJKMNPQRSTUVWXYZ23456789'; let s='';
+    for(let i=0;i<4;i++) s+=A[Math.floor(Math.random()*A.length)];
+    return s;
+  },
+  _pid(code){ return 'unlucky-balls-bb-'+code; },
+  _cleanup(clearMode){
+    try{ if(this.conn) this.conn.close(); }catch(e){}
+    try{ if(this.peer) this.peer.destroy(); }catch(e){}
+    this.conn=null; this.peer=null; this.active=false; this._inMatch=false;
+    this.oppAim=null; this._cueT=null;
+    if(clearMode!==false){ G._mpMode=false; }
+    document.getElementById('mp-bar').classList.add('hidden');
+  },
+  createRoom(){
+    if(typeof Peer==='undefined'){ this._setStatus('Multiplayer library failed to load — check your connection and refresh.'); return; }
+    this._saveName();
+    this._cleanup(false);
+    this.code = this._genCode();
+    this._setStatus('Creating room…');
+    const p = new Peer(this._pid(this.code));
+    this.peer = p;
+    p.on('open', ()=>{
+      document.getElementById('mp-code-show').textContent = this.code;
+      this._view('wait');
+      this._setStatus('Waiting for a friend to join…');
+    });
+    p.on('connection', c=>{
+      if(this.conn){ try{c.close();}catch(e){} return; } // room full
+      this.isHost = true;
+      this._bindConn(c);
+    });
+    p.on('error', e=>{
+      if(e.type==='unavailable-id'){ this.createRoom(); return; } // code collision — reroll
+      this._setStatus('Connection error: '+e.type+' — try again.');
+      this._view('menu');
+    });
+  },
+  joinRoom(){
+    if(typeof Peer==='undefined'){ this._setStatus('Multiplayer library failed to load — check your connection and refresh.'); return; }
+    this._saveName();
+    const code = document.getElementById('mp-code-in').value.trim().toUpperCase();
+    if(code.length !== 4){ this._setStatus('Enter the 4-letter room code.'); return; }
+    this._cleanup(false);
+    this._setStatus('Connecting…');
+    const p = new Peer();
+    this.peer = p;
+    p.on('open', ()=>{
+      const c = p.connect(this._pid(code), {reliable:true});
+      this.isHost = false;
+      this._bindConn(c);
+      setTimeout(()=>{ if(this.conn===c && !c.open && !this._inMatch) this._setStatus('No room found with that code — double-check it.'); }, 9000);
+    });
+    p.on('error', e=>{
+      if(e.type==='peer-unavailable'){ this._setStatus('No room found with that code — double-check it.'); return; }
+      this._setStatus('Connection error: '+e.type+' — try again.');
+    });
+  },
+  _bindConn(c){
+    this.conn = c;
+    c.on('open', ()=>{
+      this._setStatus('Connected! Setting up the table…');
+      c.send({t:'hi', name:this.myName});
+    });
+    c.on('data', m=>{ try{ this._handle(m); }catch(err){ console.error('MP msg error', err); } });
+    c.on('close', ()=>this._onDrop());
+    c.on('error', ()=>this._onDrop());
+  },
+  _onDrop(){
+    if(!this.conn) return;
+    this.conn = null;
+    if(this._inMatch){
+      // Opponent left mid-match
+      G.phase='idle';
+      this._inMatch=false;
+      document.getElementById('mp-result-title').textContent = '📡 OPPONENT LEFT';
+      document.getElementById('mp-result-title').style.color = '#ff6b00';
+      document.getElementById('mp-result-sub').textContent = 'They disconnected from the match.';
+      document.getElementById('mp-rematch-btn').style.display = 'none';
+      this._view('result'); this._setStatus('');
+      document.getElementById('mp-lobby').classList.remove('hidden');
+    } else {
+      this._setStatus('Opponent disconnected.');
+      this._view('menu');
+    }
+  },
+
+  // ── Rack generation (host) — canonical coords, safe on any screen ────────
+  buildRack(){
+    const L=[
+      // Classic triangle, apex toward the cue
+      [[.50,.50],[.40,.44],[.40,.56],[.30,.38],[.30,.50],[.30,.62],[.20,.32],[.20,.44],[.20,.56],[.20,.68]],
+      // 2×5 grid wall
+      [[.25,.26],[.25,.38],[.25,.50],[.25,.62],[.25,.74],[.40,.26],[.40,.38],[.40,.50],[.40,.62],[.40,.74]],
+      // Flying V
+      [[.52,.50],[.45,.50],[.38,.42],[.38,.58],[.31,.34],[.31,.66],[.24,.26],[.24,.74],[.17,.18],[.17,.82]]
+    ];
+    const base = L[Math.floor(Math.random()*L.length)];
+    return base.map(p=>[
+      +(p[0]+(Math.random()-.5)*.012).toFixed(4),
+      +(p[1]+(Math.random()-.5)*.012).toFixed(4)
+    ]);
+  },
+  _sendSetup(){
+    const data = {t:'setup', rack:this.buildRack(), first:this._first, name:this.myName};
+    if(this.conn && this.conn.open) this.conn.send(data);
+    this.startMatch(data);
+    this._first = this._first==='h' ? 'g' : 'h'; // alternate the break each rematch
+  },
+
+  // ── Match lifecycle ───────────────────────────────────────────────────────
+  startMatch(data){
+    document.getElementById('home').classList.add('hidden');
+    document.getElementById('mp-lobby').classList.add('hidden');
+    document.getElementById('overlay').classList.add('hidden');
+    document.getElementById('mp-rematch-btn').style.display = '';
+    this.active=true; this._inMatch=true; G._mpMode=true; G._practiceMode=false;
+    resizeCanvas();
+    G.level=1; G.score=0; G.combo=0; G.streak=0; G.shotsUsed=0; G.shotBudget=0;
+    G.lives=1; G.particles=[]; G.explosion=null; G.shake=0;
+    this.myScore=0; this.oppScore=0;
+    this._pottedShot=false; this._scratched=false; this.oppAim=null; this._cueT=null;
+    const cp = this.toL(0.80, 0.5);
+    G.cue = {x:cp[0], y:cp[1], vx:0, vy:0, r:BALL_R};
+    G.balls = [];
+    data.rack.forEach((p,i)=>{
+      const xy = this.toL(p[0], p[1]);
+      G.balls.push({
+        x:xy[0], y:xy[1], vx:0, vy:0, r:BALL_R,
+        color:BCOLORS[i % BCOLORS.length],
+        isBomb:false, isDanger:false,
+        timer:99999, maxTimer:99999, id:i,
+        potted:false, exploded:false,
+        ph:Math.random()*Math.PI*2,
+        fuseAngle:0, fuseActive:false, fuseTimer:20, fuseMaxTimer:20,
+        neverHit:true, hitCount:0, _tx:xy[0], _ty:xy[1], _net:false
+      });
+    });
+    this.myTurn = this.isHost ? (data.first==='h') : (data.first==='g');
+    G.phase='aiming';
+    G.aimAngle = Math.atan2(G.balls[0].y-G.cue.y, G.balls[0].x-G.cue.x);
+    const ln=document.getElementById('s-levelname'); if(ln) ln.textContent='— ONLINE MATCH —';
+    document.getElementById('s-lives').textContent='–';
+    document.getElementById('s-shots').textContent='–';
+    document.getElementById('s-time').textContent='–';
+    document.getElementById('s-diff').textContent='1v1';
+    document.getElementById('mp-bar').classList.remove('hidden');
+    this.updateBar();
+    updateStreakDisplay();
+    Audio.playGame(false);
+    refreshStrip();
+  },
+  updateBar(){
+    document.getElementById('mp-me').textContent  = (this.myName||'YOU')+' '+this.myScore;
+    document.getElementById('mp-opp').textContent = this.oppScore+' '+(this.oppName||'THEM');
+    const t=document.getElementById('mp-turn');
+    t.textContent = this.myTurn ? '◀ YOUR SHOT' : 'THEIR SHOT ▶';
+    t.style.color = this.myTurn ? '#00e676' : '#ff6b00';
+  },
+
+  // ── Shooter-side events ───────────────────────────────────────────────────
+  localShotStarted(){
+    this._pottedShot=false; this._scratched=false;
+    if(this.conn && this.conn.open) this.conn.send({t:'shot'});
+  },
+  onLocalPot(ball, pts){
+    this._pottedShot=true;
+    this.myScore=G.score;
+    const p=this.toC(ball.x, ball.y);
+    if(this.conn && this.conn.open) this.conn.send({t:'pot', id:ball.id, p:[+p[0].toFixed(3),+p[1].toFixed(3)], pts, s:this.myScore});
+    this.updateBar();
+  },
+  onLocalScratch(){
+    this._scratched=true;
+    if(this.conn && this.conn.open) this.conn.send({t:'scr'});
+  },
+  localShotEnded(){
+    this.myScore=G.score;
+    const remaining = G.balls.filter(b=>!b.potted&&!b.exploded).length;
+    const over = remaining===0;
+    const keep = this._pottedShot && !this._scratched && !over;
+    if(!keep){
+      this.myTurn=false;
+      if(G.streak>0){ G.streak=0; updateStreakDisplay(); }
+    }
+    const meRole  = this.isHost?'h':'g';
+    const oppRole = this.isHost?'g':'h';
+    const next = over ? 'x' : (keep ? meRole : oppRole);
+    const sc = this.isHost ? [this.myScore,this.oppScore] : [this.oppScore,this.myScore];
+    if(this.conn && this.conn.open){
+      const cp=this.toC(G.cue.x,G.cue.y);
+      this.conn.send({
+        t:'end',
+        c:[+cp[0].toFixed(4),+cp[1].toFixed(4)],
+        b:G.balls.map(b=>{const p=this.toC(b.x,b.y);return [+p[0].toFixed(4),+p[1].toFixed(4),(b.potted||b.exploded)?1:0];}),
+        sc, next, over
+      });
+    }
+    this._pottedShot=false; this._scratched=false;
+    this.updateBar(); updateFireLock();
+    if(over) this.showResult();
+  },
+
+  // ── Per-frame network tick ────────────────────────────────────────────────
+  tick(){
+    if(!this.conn || !this.conn.open) return;
+    const now = performance.now();
+    if(this.myTurn){
+      if(G.phase==='rolling' && now-this._lastState>50){
+        this._lastState=now;
+        const cp=this.toC(G.cue.x,G.cue.y);
+        this.conn.send({
+          t:'st',
+          c:[+cp[0].toFixed(4),+cp[1].toFixed(4)],
+          b:G.balls.map(b=>{const p=this.toC(b.x,b.y);return [+p[0].toFixed(4),+p[1].toFixed(4),(b.potted||b.exploded)?1:0];})
+        });
+      } else if(G.phase==='aiming' && now-this._lastAim>120){
+        this._lastAim=now;
+        const d=this.dirToC(Math.cos(G.aimAngle),Math.sin(G.aimAngle));
+        const cp=this.toC(G.cue.x,G.cue.y);
+        this.conn.send({t:'aim', d:[+d[0].toFixed(3),+d[1].toFixed(3)], c:[+cp[0].toFixed(4),+cp[1].toFixed(4)]});
+      }
+    } else {
+      // Spectator: ease balls toward streamed positions
+      const k=0.4;
+      if(G.cue && this._cueT){ G.cue.x+=(this._cueT[0]-G.cue.x)*k; G.cue.y+=(this._cueT[1]-G.cue.y)*k; }
+      for(const b of G.balls){
+        if(b._net && !b.potted){ b.x+=(b._tx-b.x)*k; b.y+=(b._ty-b.y)*k; }
+      }
+    }
+  },
+  drawOppAim(){
+    if(!this.oppAim || !G.cue || G.phase!=='aiming') return;
+    const d=this.dirToL(this.oppAim[0], this.oppAim[1]);
+    const hit=castRay(G.cue.x, G.cue.y, d[0], d[1], G.cue.r);
+    ctx.save();
+    ctx.setLineDash([6,8]);
+    ctx.strokeStyle='rgba(160,160,160,0.35)';
+    ctx.lineWidth=2;
+    ctx.beginPath(); ctx.moveTo(G.cue.x,G.cue.y); ctx.lineTo(hit.x,hit.y); ctx.stroke();
+    ctx.restore();
+  },
+
+  // ── Incoming messages ─────────────────────────────────────────────────────
+  _handle(m){
+    if(!m || typeof m!=='object') return;
+    switch(m.t){
+      case 'hi':
+        this.oppName = String(m.name||'THEM').slice(0,12);
+        if(this.isHost) this._sendSetup();
+        break;
+      case 'setup':
+        if(m.name) this.oppName = String(m.name).slice(0,12);
+        this.startMatch(m);
+        break;
+      case 'aim':
+        this.oppAim = m.d;
+        if(m.c && G.cue){ const p=this.toL(m.c[0],m.c[1]); this._cueT=p; G.cue.x=p[0]; G.cue.y=p[1]; }
+        break;
+      case 'shot':
+        this.oppAim = null;
+        break;
+      case 'st':
+        if(m.c){ this._cueT = this.toL(m.c[0], m.c[1]); }
+        if(m.b) m.b.forEach((p,i)=>{
+          const b=G.balls[i]; if(!b) return;
+          const xy=this.toL(p[0],p[1]);
+          b._tx=xy[0]; b._ty=xy[1]; b._net=true;
+          if(p[2] && !b.potted){ b.potted=true; refreshStrip(); }
+        });
+        break;
+      case 'pot': {
+        this.oppScore = m.s;
+        const b = G.balls[m.id];
+        if(b && !b.potted){ b.potted=true; refreshStrip(); }
+        if(m.p){ const xy=this.toL(m.p[0],m.p[1]); showCombo(xy[0], xy[1], 1, m.pts); }
+        Audio.sfxPotted(1);
+        this.updateBar();
+        break;
+      }
+      case 'scr':
+        Audio.sfxMiss();
+        break;
+      case 'end': {
+        if(m.b) m.b.forEach((p,i)=>{
+          const b=G.balls[i]; if(!b) return;
+          const xy=this.toL(p[0],p[1]);
+          b.x=xy[0]; b.y=xy[1]; b._tx=xy[0]; b._ty=xy[1];
+          b.vx=0; b.vy=0; b.potted=!!p[2]; b._net=false;
+        });
+        if(m.c && G.cue){ const xy=this.toL(m.c[0],m.c[1]); G.cue.x=xy[0]; G.cue.y=xy[1]; G.cue.vx=0; G.cue.vy=0; }
+        this._cueT=null; this.oppAim=null;
+        if(m.sc){
+          this.myScore  = this.isHost ? m.sc[0] : m.sc[1];
+          this.oppScore = this.isHost ? m.sc[1] : m.sc[0];
+          G.score = this.myScore;
+        }
+        this.myTurn = m.next === (this.isHost?'h':'g');
+        G.phase='aiming';
+        refreshStrip(); this.updateBar(); updateFireLock();
+        if(m.over) this.showResult();
+        break;
+      }
+      case 'rr': // guest requested rematch
+        if(this.isHost) this._sendSetup();
+        break;
+      case 'bye':
+        this._onDrop();
+        break;
+    }
+  },
+
+  // ── Match end / rematch / leave ───────────────────────────────────────────
+  showResult(){
+    G.phase='idle';
+    const win = this.myScore>this.oppScore ? 'win' : this.myScore<this.oppScore ? 'lose' : 'tie';
+    const tEl=document.getElementById('mp-result-title');
+    if(win==='win'){ tEl.textContent='🏆 YOU WIN!'; tEl.style.color='#00e676'; Audio.sfxCheer&&Audio.sfxCheer(); }
+    else if(win==='lose'){ tEl.textContent='💀 YOU LOSE'; tEl.style.color='#ff2a2a'; }
+    else { tEl.textContent='🤝 DEAD TIE'; tEl.style.color='#ffcc00'; }
+    document.getElementById('mp-result-sub').textContent =
+      (this.myName||'YOU')+' '+this.myScore+'  —  '+this.oppScore+' '+(this.oppName||'THEM');
+    document.getElementById('mp-rematch-btn').style.display = (this.conn&&this.conn.open)?'':'none';
+    this._view('result'); this._setStatus('');
+    document.getElementById('mp-lobby').classList.remove('hidden');
+  },
+  requestRematch(){
+    if(!this.conn || !this.conn.open){ this._setStatus('Opponent is gone — start a new room.'); return; }
+    if(this.isHost){ this._sendSetup(); }
+    else {
+      this.conn.send({t:'rr'});
+      this._setStatus('Rematch requested — waiting for the table…');
+    }
+  },
+  leave(silent){
+    try{ if(this.conn && this.conn.open) this.conn.send({t:'bye'}); }catch(e){}
+    this._cleanup(true);
+    document.getElementById('mp-lobby').classList.add('hidden');
+    if(!silent) goHome();
+  }
+};
 
 </script>
 
