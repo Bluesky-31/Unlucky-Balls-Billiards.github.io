@@ -38,6 +38,8 @@ html,body{width:100%;height:100%;overflow:hidden;background:#0d0d0d;font-family:
 /* ── SETTINGS SCREEN ── */
 #settings{position:fixed;inset:0;background:#0a0a0a;display:flex;flex-direction:column;align-items:center;z-index:150;padding:24px 16px 32px;overflow-y:scroll;-webkit-overflow-scrolling:touch;}
 #settings.hidden{display:none;}
+/* mp-lobby uses inline display:flex, so its .hidden needs an explicit rule to win */
+#mp-lobby.hidden{display:none!important;}
 #settings-title{font-family:'Black Ops One',Impact,'Arial Black',fantasy,cursive;font-size:1.5rem;letter-spacing:4px;color:#ff6b00;margin-bottom:20px;}
 .set-panel{width:100%;max-width:360px;background:#141414;border:1px solid #222;border-radius:12px;margin-bottom:12px;overflow:visible;}
 .set-panel-header{display:flex;align-items:center;gap:8px;padding:10px 14px;background:#1a1a1a;border-bottom:1px solid #222;}
@@ -86,15 +88,19 @@ box-shadow:0 2px 5px rgba(0,0,0,0.4);
 /* ── HOME SCREEN ── */
 #home{position:fixed;inset:0;background:#0d0d0d;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0;z-index:100;padding:20px;}
 #home.hidden{display:none;}
-#home-title{font-family:'Black Ops One',Impact,'Arial Black',fantasy,cursive;font-size:2.4rem;letter-spacing:5px;color:#ff6b00;text-shadow:0 0 24px rgba(255,107,0,.6);text-align:center;line-height:1.1;margin-bottom:6px;}
+#home-title{font-family:'Black Ops One',Impact,'Arial Black',fantasy,cursive;font-size:2.4rem;letter-spacing:5px;color:#ff6b00;text-shadow:0 0 24px rgba(255,107,0,.6);text-align:center;line-height:1.1;margin-bottom:6px;animation:titleGlow 3s ease-in-out infinite;}
+@keyframes titleGlow{0%,100%{text-shadow:0 0 18px rgba(255,107,0,.5);transform:scale(1);}50%{text-shadow:0 0 34px rgba(255,140,0,.85),0 0 12px rgba(255,200,80,.6);transform:scale(1.02);}}
 #home-sub{font-size:.7rem;letter-spacing:3px;color:#bbb;text-transform:uppercase;margin-bottom:32px;}
 .diff-label{font-size:.6rem;letter-spacing:3px;color:#ccc;text-transform:uppercase;margin-bottom:10px;text-align:center;}
 .diff-btns{display:flex;flex-wrap:wrap;justify-content:center;gap:8px;margin-bottom:24px;max-width:340px;}
 .diff-btn{font-family:'Black Ops One',Impact,'Arial Black',fantasy,cursive;font-size:.78rem;letter-spacing:1px;padding:10px 16px;border:2px solid #555;border-radius:6px;background:transparent;color:#bbb;cursor:pointer;transition:all .15s;}
+.diff-btn:hover{border-color:#ff9944;color:#ffb366;transform:translateY(-2px);box-shadow:0 4px 12px rgba(255,107,0,.2);}
 .diff-btn.active{border-color:#ff6b00;color:#ff6b00;background:rgba(255,107,0,.1);}
 #home-desc{font-size:.68rem;color:#bbb;letter-spacing:1px;text-align:center;margin-bottom:28px;line-height:1.7;min-height:40px;}
-#home-start{font-family:'Black Ops One',Impact,'Arial Black',fantasy,cursive;font-size:1.2rem;letter-spacing:4px;padding:16px 48px;background:#ff6b00;border:none;border-radius:8px;color:#000;cursor:pointer;}
-#home-start:active{background:#cc5500;}
+#home-start{font-family:'Black Ops One',Impact,'Arial Black',fantasy,cursive;font-size:1.2rem;letter-spacing:4px;padding:16px 48px;background:#ff6b00;border:none;border-radius:8px;color:#000;cursor:pointer;transition:transform .12s;animation:startPulse 2s ease-in-out infinite;}
+@keyframes startPulse{0%,100%{box-shadow:0 0 0 0 rgba(255,107,0,.5);}50%{box-shadow:0 0 26px 4px rgba(255,107,0,.55);}}
+#home-start:hover{transform:scale(1.05);}
+#home-start:active{background:#cc5500;transform:scale(.98);}
 
 /* ── APP SHELL ── */
 #app{position:fixed;top:0;left:0;right:0;bottom:0;display:flex;flex-direction:column;overflow:hidden;background:#0d0d0d;}
@@ -132,6 +138,22 @@ box-shadow:0 2px 5px rgba(0,0,0,0.4);
 .bomb-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
 .t-safe{color:var(--safe);}.t-warn{color:var(--warn);}.t-danger{color:var(--danger);animation:blink .4s infinite;}
 @keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+
+/* ── Achievement toast ── */
+.ach-toast{position:fixed;top:-90px;left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:12px;background:linear-gradient(135deg,#1c1408,#2a1d0a);border:2px solid #ff9d2e;border-radius:12px;padding:10px 18px 10px 12px;box-shadow:0 8px 30px rgba(255,140,0,.35);z-index:9999;transition:top .45s cubic-bezier(.2,1.4,.4,1),opacity .4s;opacity:0;max-width:88vw;}
+.ach-toast.show{top:18px;opacity:1;}
+.ach-toast .ach-icon{font-size:2rem;line-height:1;filter:drop-shadow(0 0 6px rgba(255,180,60,.6));}
+.ach-toast .ach-text{font-size:.9rem;color:#ffe9c4;line-height:1.25;}
+.ach-toast .ach-text b{font-size:.55rem;letter-spacing:2px;color:#ff9d2e;}
+/* ── Achievement badges grid (settings) ── */
+.ach-grid{display:flex;flex-wrap:wrap;gap:10px;padding:12px 14px;}
+.ach-badge{display:flex;flex-direction:column;align-items:center;gap:3px;width:72px;text-align:center;opacity:.32;filter:grayscale(1);transition:all .2s;}
+.ach-badge.earned{opacity:1;filter:none;}
+.ach-badge .b-ic{font-size:1.7rem;}
+.ach-badge .b-nm{font-size:.5rem;letter-spacing:.5px;color:#ccc;text-transform:uppercase;line-height:1.1;}
+/* ── Lobby spinner ── */
+.mp-spinner{width:34px;height:34px;border-radius:50%;border:3px solid rgba(77,166,255,.2);border-top-color:#4da6ff;animation:mpspin .8s linear infinite;}
+@keyframes mpspin{to{transform:rotate(360deg);}}
 
 /* ── RANKINGS SCREEN ── */
 #rankings{position:fixed;inset:0;background:#0d0d0d;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;padding:32px 20px 24px;z-index:200;overflow-y:auto;}
@@ -297,6 +319,7 @@ overflow-y:auto;background:#0e0e0e;width:100%;height:100%;
   </button>
   <div style="display:flex;gap:12px;margin-top:4px;flex-wrap:wrap;justify-content:center;">
     <button id="home-start" onclick="launchGame()">💣 LIGHT FUSE</button>
+    <button onclick="startDaily()" style="font-family:'Black Ops One',Impact,'Arial Black',fantasy,cursive;font-size:.9rem;letter-spacing:2px;padding:14px 22px;background:rgba(255,176,32,0.12);border:2px solid #ffb020;border-radius:8px;color:#ffb020;cursor:pointer;">🗓 DAILY</button>
     <button onclick="MP.openLobby()" style="font-family:'Black Ops One',Impact,'Arial Black',fantasy,cursive;font-size:.9rem;letter-spacing:2px;padding:14px 22px;background:rgba(77,166,255,0.12);border:2px solid #4da6ff;border-radius:8px;color:#4da6ff;cursor:pointer;">🌐 1v1 ONLINE</button>
     <button onclick="openMapFromHome()" style="font-family:'Black Ops One',Impact,'Arial Black',fantasy,cursive;font-size:.9rem;letter-spacing:2px;padding:14px 22px;background:rgba(0,200,100,0.12);border:2px solid #00c864;border-radius:8px;color:#00c864;cursor:pointer;">🗺 MAP</button>
     <button onclick="openSettings()" style="font-family:'Black Ops One',Impact,'Arial Black',fantasy,cursive;font-size:.9rem;letter-spacing:2px;padding:14px 22px;background:transparent;border:2px solid #333;border-radius:8px;color:#666;cursor:pointer;">⚙ SETTINGS</button>
@@ -348,6 +371,7 @@ border:1px solid rgba(255,80,80,0.35);">
     <div id="mp-code-show" onclick="MP.copyCode()" title="Tap to copy"
       style="font-family:'Share Tech Mono',monospace;font-size:3rem;letter-spacing:14px;color:#ffcc00;background:#161616;border:2px dashed #4da6ff;border-radius:12px;padding:14px 20px 14px 34px;cursor:pointer;user-select:all;">----</div>
     <div id="mp-copy-hint" style="font-size:.6rem;letter-spacing:1px;color:#555;">tap code to copy · they open the game → 1v1 ONLINE → JOIN</div>
+    <div style="display:flex;align-items:center;gap:10px;color:#4da6ff;font-size:.7rem;letter-spacing:2px;margin-top:4px;"><div class="mp-spinner"></div><span>WAITING FOR OPPONENT…</span></div>
   </div>
 
   <!-- RESULT VIEW -->
@@ -435,8 +459,35 @@ border:1px solid rgba(255,80,80,0.35);">
   <div><div class="set-row-label">Early Angry Balls</div><div class="set-row-desc">Angry balls appear 2 levels sooner</div></div>
   <label class="toggle"><input type="checkbox" id="set-earlybombs" onchange="saveSetting('earlybombs',this.checked)"><div class="toggle-track"></div></label>
 </div>
+<div class="set-row">
+  <div><div class="set-row-label">Power-Ups</div><div class="set-row-desc">✨ Special balls: multi-ball, slow-mo, bonus time &amp; mystery (single-player)</div></div>
+  <label class="toggle"><input type="checkbox" id="set-powerups" checked onchange="saveSetting('powerups',this.checked)"><div class="toggle-track"></div></label>
+</div>
 ```
 
+  </div>
+
+  <!-- AUDIO -->
+
+  <div class="set-panel">
+    <div class="set-panel-header"><span class="set-panel-icon">🔊</span><span class="set-panel-title">AUDIO</span></div>
+    <div class="set-row">
+      <div style="flex:1;">
+        <div class="set-row-label">Volume</div>
+        <input type="range" id="set-volume" min="0" max="100" value="80" style="width:100%;margin-top:8px;accent-color:#ff6b00;" oninput="setVolume(this.value)">
+      </div>
+    </div>
+    <div class="set-row">
+      <div><div class="set-row-label">Mute All</div><div class="set-row-desc">Silence music &amp; sound effects</div></div>
+      <label class="toggle"><input type="checkbox" id="set-muted" onchange="setMuted(this.checked)"><div class="toggle-track"></div></label>
+    </div>
+  </div>
+
+  <!-- ACHIEVEMENTS -->
+
+  <div class="set-panel">
+    <div class="set-panel-header"><span class="set-panel-icon">🏆</span><span class="set-panel-title">ACHIEVEMENTS</span></div>
+    <div class="ach-grid" id="ach-grid"></div>
   </div>
 
   <!-- CUSTOMISE -->
@@ -451,6 +502,8 @@ border:1px solid rgba(255,80,80,0.35);">
         <div class="swatch"        data-felt="black"  title="Black"  style="background:linear-gradient(135deg,#1a1a1a,#0a0a0a)" onclick="setFelt('black')"></div>
         <div class="swatch"        data-felt="pink"   title="Pink"   style="background:linear-gradient(135deg,#8b2252,#5a1435)" onclick="setFelt('pink')"></div>
         <div class="swatch"        data-felt="red"    title="Red"    style="background:linear-gradient(135deg,#7a1a1a,#4a0e0e)" onclick="setFelt('red')"></div>
+        <div class="swatch"        data-felt="purple" title="Purple" style="background:linear-gradient(135deg,#5c2d97,#3f1f6b)" onclick="setFelt('purple')"></div>
+        <div class="swatch"        data-felt="teal"   title="Teal"   style="background:linear-gradient(135deg,#158a7d,#0d5e55)" onclick="setFelt('teal')"></div>
       </div>
       <div style="font-size:.55rem;letter-spacing:2px;color:#888;text-transform:uppercase;margin-bottom:8px;">Cue Stick</div>
       <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;" id="cue-swatches">
@@ -603,11 +656,13 @@ const DIFF_LABELS = { easy:'EZ', normal:'NRM', hard:'HRD', expert:'XPT', practic
 
 // ── Settings state ─────────────────────────────────────────────────────────
 const FELT_COLORS = {
-  green: { c0:'#2e8b4a', c1:'#236b3a', c2:'#1a5230' },
-  blue:  { c0:'#2060b0', c1:'#1a4d90', c2:'#103568' },
-  black: { c0:'#3a3a3a', c1:'#262626', c2:'#141414' },
-  pink:  { c0:'#c03870', c1:'#9b2d60', c2:'#721f48' },
-  red:   { c0:'#aa2828', c1:'#882020', c2:'#601515' },
+  green:  { c0:'#2e8b4a', c1:'#236b3a', c2:'#1a5230' },
+  blue:   { c0:'#2060b0', c1:'#1a4d90', c2:'#103568' },
+  black:  { c0:'#3a3a3a', c1:'#262626', c2:'#141414' },
+  pink:   { c0:'#c03870', c1:'#9b2d60', c2:'#721f48' },
+  red:    { c0:'#aa2828', c1:'#882020', c2:'#601515' },
+  purple: { c0:'#7a3ec0', c1:'#5c2d97', c2:'#3f1f6b' },
+  teal:   { c0:'#1fb0a0', c1:'#158a7d', c2:'#0d5e55' },
 };
 const CUE_COLORS = {
   classic: { tip:'#f5d06e', mid:'#c8a84b', butt:'#5c3317' },
@@ -627,6 +682,9 @@ let settings = {
   cue: 'classic',
   flowers: false,
   skulls: false,
+  powerups: true,   // special balls & power-ups in single-player
+  sfxVol: 0.8,      // 0..1 master audio volume
+  muted: false,     // mute all audio
 };
 try {
   const saved = JSON.parse(localStorage.getItem('bb_settings')||'{}');
@@ -677,6 +735,10 @@ function openSettings() {
   // mobile mode toggle is on home screen, not settings
   document.getElementById('set-flowers').checked = settings.flowers;
   document.getElementById('set-skulls').checked  = settings.skulls;
+  document.getElementById('set-powerups').checked = settings.powerups !== false;
+  document.getElementById('set-volume').value    = Math.round((settings.sfxVol ?? 0.8)*100);
+  document.getElementById('set-muted').checked   = !!settings.muted;
+  renderAchievements();
   document.querySelectorAll('[data-felt]').forEach(el =>
     el.classList.toggle('active', el.dataset.felt === settings.felt));
   document.querySelectorAll('[data-cue]').forEach(el =>
@@ -699,6 +761,15 @@ function setCue(name) {
   saveSetting('cue', name);
   document.querySelectorAll('[data-cue]').forEach(el =>
     el.classList.toggle('active', el.dataset.cue === name));
+}
+function setVolume(v) {
+  const vol = Math.max(0, Math.min(1, (+v)/100));
+  saveSetting('sfxVol', vol);
+  Audio.setVolume(vol);
+}
+function setMuted(b) {
+  saveSetting('muted', !!b);
+  Audio.setMuted(!!b);
 }
 
 let difficulty = 'normal';
@@ -730,6 +801,7 @@ function selectDiff(d) {
 function continueGame() {
   const save = loadSave();
   if(!save) return;
+  G._dailyMode = false;
   document.getElementById('home').classList.add('hidden');
   difficulty = save.difficulty;
   document.getElementById('s-diff').textContent = DIFF_LABELS[difficulty]||'NRM';
@@ -746,7 +818,35 @@ function continueGame() {
   startLevel();
 }
 
+// ── Daily Challenge ────────────────────────────────────────────────────────
+// One deterministic level per calendar day (same layout for everyone), one
+// life, score-attack. Your best for the day is saved locally.
+function dailyKey() { return new Date().toISOString().slice(0,10); }
+function getDailyBest(key) {
+  try { return +(localStorage.getItem('bb_daily_'+(key||dailyKey()))||0); } catch(e){ return 0; }
+}
+function startDaily() {
+  const key = dailyKey();
+  // Hash the date string into a 32-bit seed
+  let h = 0;
+  for(let i=0;i<key.length;i++){ h = Math.imul(h ^ key.charCodeAt(i), 3432918353); h = (h<<13)|(h>>>19); }
+  G._dailySeed = (h >>> 0) || 1;
+  G._dayKey = key;
+  G._dailyMode = true; G._practiceMode = false; G._mpMode = false;
+  difficulty = 'normal';
+  settings.suddendeath = false; settings.earlybombs = false; settings.timer = false;
+  G.score = 0; G.lives = 1;
+  G.level = (G._dailySeed % 8) + 3; // a mid-tier level, varies by day
+  G._levelStartTime = Date.now();
+  Audio.playGame(false);
+  document.getElementById('home').classList.add('hidden');
+  document.getElementById('s-diff').textContent = 'DAILY';
+  updateLivesDisplay();
+  startLevel();
+}
+
 function launchGame() {
+  G._dailyMode = false;
   document.getElementById('home').classList.add('hidden');
   document.getElementById('s-diff').textContent = DIFF_LABELS[difficulty];
   if(difficulty === 'practice'){
@@ -805,6 +905,7 @@ function placePracticeBall() {
 
 function startPractice() {
   document.getElementById('overlay').classList.add('hidden');
+  G._dailyMode = false;
   buildTable();
   G.particles = []; G.combo = 0; G.explosion = null;
   // Cue ball at one-quarter table
@@ -1228,6 +1329,18 @@ function generateCandidates(n, pattern, cueX, cueY) {
 function startLevel() {
   document.getElementById('overlay').classList.add('hidden');
   resizeCanvas();
+  // Daily Challenge: seed Math.random from the day's seed so ball layout is
+  // identical for everyone that day. Restored right after placement below.
+  const _origRandom = Math.random;
+  if(G._dailyMode){
+    let s = (G._dailySeed >>> 0) || 1;
+    Math.random = function(){
+      s = (s + 0x6D2B79F5) | 0;
+      let t = Math.imul(s ^ (s >>> 15), 1 | s);
+      t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+  }
   const lvl = getLevelData(G.level);
   G.balls=[]; G.particles=[]; G.combo=0; G.explosion=null; G.phase='idle';
   G._scratchedThisLevel=false; G._levelStartTime=Date.now();
@@ -1284,9 +1397,29 @@ function startLevel() {
       fuseTimer: 20,
       fuseMaxTimer: 20,
       neverHit: true,  // true until first contact — used for 1-hit sink bonus
-      hitCount: 0      // number of times hit without sinking — draws cracks
+      hitCount: 0,     // number of times hit without sinking — draws cracks
+      special: null    // power-up tag: multiball | slowmo | time | mystery
     });
   });
+
+  // ── Power-ups: tag a couple of normal balls as special (single-player only) ──
+  // Never tag danger balls (they end the round) or bomb balls (timer pressure).
+  if(settings.powerups !== false && !G._mpMode && !G._practiceMode){
+    const pool = ['multiball','slowmo','time','mystery'];
+    // Any pottable ball can carry a power-up; only danger balls are off-limits
+    // (they end the round / need clean handling).
+    const eligible = G.balls
+      .map((b,i)=>({b,i}))
+      .filter(o => !o.b.isDanger);
+    // Roughly one special per 5 balls, capped at 2, and only from level 2 up.
+    const want = G.level >= 2 ? Math.min(2, Math.floor(eligible.length / 5) + 1) : 0;
+    for(let k=0; k<want && eligible.length; k++){
+      const pick = eligible.splice(Math.floor(Math.random()*eligible.length), 1)[0];
+      pick.b.special = pool[Math.floor(Math.random()*pool.length)];
+    }
+  }
+
+  Math.random = _origRandom; // restore real RNG after deterministic placement
 
   G.phase='aiming';
   refreshStrip();
@@ -1574,6 +1707,9 @@ function shoot() {
   G.cue.spinY = G.spinY; // top/backspin
   G.cue._distTravelled = 0; // reset distance for spin delay
   G.phase='rolling'; G.combo=0; G._pottedThisShot=false;
+  // Reset bank-shot tracking for this shot
+  for(const b of G.balls) b._wallBounced = false;
+  Audio.sfxWhoosh(G.power);
   G.shotsUsed++; updateShotsDisplay();
   G.spinX=0; G.spinY=0;
   spinCycleIdx=0; spinSubIdx=-1;
@@ -1618,12 +1754,14 @@ function moveBall(ball,isCue) {
     if(spd < MIN_SPD * 4){ ball.spinX=0; ball.spinY=0; } // kill spin when nearly stopped
   }
   // Wall bounces with full spin effects
+  let _bounceSpd = 0;
   // Left wall
   if(ball.x-ball.r<T.left){
     ball.x=T.left+ball.r;
     const preSpd=Math.abs(ball.vx);
     ball.vx=preSpd*0.8;
     if(isCue&&ball.spinX) ball.vy += ball.spinX * preSpd * 0.55; // R-spin deflects down, L-spin up
+    _bounceSpd=Math.max(_bounceSpd,preSpd);
   }
   // Right wall
   if(ball.x+ball.r>T.right){
@@ -1631,6 +1769,7 @@ function moveBall(ball,isCue) {
     const preSpd=Math.abs(ball.vx);
     ball.vx=-preSpd*0.8;
     if(isCue&&ball.spinX) ball.vy -= ball.spinX * preSpd * 0.55;
+    _bounceSpd=Math.max(_bounceSpd,preSpd);
   }
   // Top wall
   if(ball.y-ball.r<T.top){
@@ -1638,6 +1777,7 @@ function moveBall(ball,isCue) {
     const preSpd=Math.abs(ball.vy);
     ball.vy=preSpd*0.8;
     if(isCue&&ball.spinX) ball.vx += ball.spinX * preSpd * 0.55; // sidespin deflects along wall
+    _bounceSpd=Math.max(_bounceSpd,preSpd);
   }
   // Bottom wall
   if(ball.y+ball.r>T.bottom){
@@ -1645,6 +1785,12 @@ function moveBall(ball,isCue) {
     const preSpd=Math.abs(ball.vy);
     ball.vy=-preSpd*0.8;
     if(isCue&&ball.spinX) ball.vx -= ball.spinX * preSpd * 0.55;
+    _bounceSpd=Math.max(_bounceSpd,preSpd);
+  }
+  // Rail-kiss sound — only for meaningful hits, so slow rolls stay quiet
+  if(_bounceSpd > 2.2){
+    Audio.sfxWallBounce();
+    if(!isCue) ball._wallBounced = true; // for bank-shot trick detection
   }
   // Snap to full stop AFTER all bounces — ball touching wall can't re-enter loop
   const _minSpd = MIN_SPD * Math.max(1, Math.min(T.iw,T.ih) / 350);
@@ -1681,11 +1827,20 @@ function moveBall(ball,isCue) {
         // Streak multiplier bonus on top of combo
         const streakBonus = G.streak >= 5 ? Math.floor(pts * 0.5) : G.streak >= 3 ? Math.floor(pts * 0.25) : 0;
         pts += streakBonus;
+        // Trick shot: bank the ball off a rail before sinking it (single-player bonus)
+        const banked = !!ball._wallBounced;
+        if(banked && !G._mpMode) pts += Math.floor(pts * 0.5);
         Audio.sfxPotted(G.combo);
+        if(G.combo >= 4) Audio.sfxCombo(G.combo);
         if(G.combo >= 3) Audio.sfxCheer();
         else if(G.combo === 2) Audio.sfxClap();
+        // Juice: particle burst in the ball's colour + a little screen shake
+        burst(ball.x, ball.y, ball.color, 10 + G.combo*4);
+        G.shake = Math.min(0.7, 0.15 + 0.1*G.combo);
+        if(G.combo >= 3) G._comboFlash = 0.5;
         let ptsLabel = null;
-        if(ball.neverHit && G.streak >= 3) ptsLabel = '⚡1-HIT x'+G.streak+'! +'+pts;
+        if(banked) ptsLabel = '🎩 BANK SHOT! +'+pts;
+        else if(ball.neverHit && G.streak >= 3) ptsLabel = '⚡1-HIT x'+G.streak+'! +'+pts;
         else if(ball.neverHit) ptsLabel = '⚡1-HIT! +'+pts;
         else if(G.streak >= 5) ptsLabel = '🔥x'+G.streak+' STREAK! +'+pts;
         else if(G.streak >= 3) ptsLabel = '🔥x'+G.streak+'! +'+pts;
@@ -1694,6 +1849,15 @@ function moveBall(ball,isCue) {
         G.score+=pts;
         G._pottedThisShot=true;
         if(G._mpMode) MP.onLocalPot(ball, pts);
+        // Special ball power-up (single-player only — MP racks never carry specials)
+        if(ball.special && !G._mpMode) applyPowerup(ball);
+        // Achievements
+        unlockAch('first_pot');
+        if(G.combo >= 5) unlockAch('combo5');
+        if(G.streak >= 8) unlockAch('streak8');
+        if(ball.neverHit && G.streak >= 3) unlockAch('sharpshot');
+        if(banked) unlockAch('bankshot');
+        if(G.score >= 10000) unlockAch('highroller');
         updateStreakDisplay();
         refreshStrip();
         checkEnd();
@@ -1779,6 +1943,14 @@ function checkDangerBombs() {
 
 function physics() {
   if(G.phase!=='rolling') return;
+
+  // Slow-mo power-up: advance the simulation every other frame so balls
+  // glide in cinematic slow motion. Friction/collisions stay consistent
+  // because it's the same steps run at half wall-clock rate.
+  if(G._slowmo > 0){
+    G._slowStep = !G._slowStep;
+    if(!G._slowStep) return;
+  }
 
   // Pre-move danger check
   if(checkDangerBombs()) return;
@@ -1921,9 +2093,17 @@ function checkEnd() {
       const perfectBonus = clearedLvl * 200;
       bonus += perfectBonus;
       bonusMsg += ` ✨+${perfectBonus}perfect`;
+      unlockAch('flawless');
     }
 
     G.score += bonus;
+
+    // Daily Challenge is a single-level score attack — finish here, no advance.
+    if(G._dailyMode){
+      Audio.sfxLevelClear();
+      showRankings(true);
+      return;
+    }
 
     const lvlStars = getStarsForLevel(clearedLvl, G._scratchedThisLevel, G.shotsUsed, G.shotBudget);
     saveLevelProgress(clearedLvl, lvlStars, bonus);
@@ -1931,6 +2111,7 @@ function checkEnd() {
     G._scratchedThisLevel = false;
 
     if(clearedLvl >= MAX_LEVEL){
+      unlockAch('champion');
       showRankings(true);
     } else {
       Audio.sfxLevelClear();
@@ -1962,6 +2143,53 @@ function saveScore(entry) {
   scores.sort((a,b)=>b.score-a.score);
   try { localStorage.setItem('bb_scores', JSON.stringify(scores.slice(0,10))); } catch(e){}
   return scores;
+}
+
+// ── Achievements / badges ─────────────────────────────────────────────────
+const ACHIEVEMENTS = [
+  { id:'first_pot',  icon:'🎱', name:'First Blood',    desc:'Sink your first ball' },
+  { id:'combo5',     icon:'🔥', name:'Combo King',     desc:'Sink 5 balls in one shot' },
+  { id:'streak8',    icon:'⚡', name:'Unstoppable',    desc:'Reach an 8× streak' },
+  { id:'sharpshot',  icon:'🎯', name:'Sharpshooter',   desc:'One-hit sink with a 3× streak' },
+  { id:'bankshot',   icon:'🎩', name:'Trick Shot',     desc:'Sink a ball off a rail bank' },
+  { id:'flawless',   icon:'✨', name:'Flawless',       desc:'Clear a level with no scratch' },
+  { id:'powerup',    icon:'🌟', name:'Lucky Star',     desc:'Trigger a power-up' },
+  { id:'highroller', icon:'💎', name:'High Roller',    desc:'Score 10,000 points in a run' },
+  { id:'champion',   icon:'👑', name:'Champion',       desc:'Clear all levels' },
+];
+function getAchievements() {
+  try { return JSON.parse(localStorage.getItem('bb_achievements')||'[]'); } catch(e){ return []; }
+}
+function unlockAch(id) {
+  const have = getAchievements();
+  if(have.includes(id)) return;
+  const def = ACHIEVEMENTS.find(a=>a.id===id);
+  if(!def) return;
+  have.push(id);
+  try { localStorage.setItem('bb_achievements', JSON.stringify(have)); } catch(e){}
+  showAchToast(def);
+}
+function renderAchievements() {
+  const grid = document.getElementById('ach-grid');
+  if(!grid) return;
+  const have = getAchievements();
+  grid.innerHTML = ACHIEVEMENTS.map(a => {
+    const earned = have.includes(a.id);
+    const title = earned ? a.name+' — '+a.desc : '???  '+a.desc;
+    return '<div class="ach-badge'+(earned?' earned':'')+'" title="'+title+'">'+
+      '<span class="b-ic">'+(earned?a.icon:'🔒')+'</span>'+
+      '<span class="b-nm">'+(earned?a.name:'Locked')+'</span></div>';
+  }).join('');
+}
+function showAchToast(def) {
+  Audio.sfxPowerup && Audio.sfxPowerup();
+  const el = document.createElement('div');
+  el.className = 'ach-toast';
+  el.innerHTML = '<span class="ach-icon">'+def.icon+'</span>'+
+    '<span class="ach-text"><b>ACHIEVEMENT</b><br>'+def.name+'</span>';
+  document.body.appendChild(el);
+  requestAnimationFrame(()=>el.classList.add('show'));
+  setTimeout(()=>{ el.classList.remove('show'); setTimeout(()=>el.remove(), 500); }, 2600);
 }
 
 // Trigger the UNLUCKY BALLS explosion + animation before showing rankings
@@ -2038,6 +2266,19 @@ function showRankings(champion) {
   document.getElementById('rankings-diff').textContent =
     'Level '+G.level+' • '+({easy:'Easy',normal:'Normal',hard:'Hard'}[difficulty]||'Normal');
 
+  // Daily Challenge result — record & show best, override title/subtitle
+  if(G._dailyMode){
+    const key = G._dayKey || dailyKey();
+    const best = Math.max(getDailyBest(key), G.score);
+    try { localStorage.setItem('bb_daily_'+key, best); } catch(e){}
+    titleEl.textContent = champion ? '🗓 DAILY CLEARED!' : '🗓 DAILY OVER';
+    titleEl.style.color = champion ? '#00e676' : '#ffb020';
+    const isNewBest = G.score >= best && G.score > 0;
+    document.getElementById('rankings-diff').textContent =
+      'Daily Best: '+best.toLocaleString()+(isNewBest?' • NEW BEST! 🎉':'');
+    G._dailyMode = false; // reset so returning home behaves normally
+  }
+
   const medals = ['🥇','🥈','🥉'];
   const tbody = document.getElementById('rankings-body');
   tbody.innerHTML='';
@@ -2088,6 +2329,67 @@ function updateShotsDisplay() {
   const rem = G.shotBudget - G.shotsUsed;
   el.textContent = rem;
   el.style.color = rem <= 2 ? '#ff2a2a' : rem <= Math.ceil(G.shotBudget*0.3) ? '#ffaa00' : '#aaaaaa';
+}
+
+// Reusable celebratory particle burst (pot success, power-ups, etc.)
+function burst(x, y, color, count) {
+  const n = count || 12;
+  for(let i=0;i<n;i++){
+    const a = Math.random()*Math.PI*2, s = 1.5 + Math.random()*5;
+    const sparkle = Math.random() < 0.35;
+    G.particles.push({
+      x, y,
+      vx: Math.cos(a)*s,
+      vy: Math.sin(a)*s - 1.5, // slight upward pop before gravity
+      life: 0.5 + Math.random()*0.4,
+      r: sparkle ? 1 + Math.random()*2 : 2 + Math.random()*3.5,
+      color: sparkle ? (Math.random()<0.5?'#ffffff':'#ffee88') : (color || '#ffffff')
+    });
+  }
+}
+
+// Apply a special ball's power-up effect when it is potted (single-player only).
+function applyPowerup(ball) {
+  let kind = ball.special;
+  if(kind === 'mystery'){
+    kind = ['multiball','slowmo','time'][Math.floor(Math.random()*3)];
+  }
+  let label = '';
+  if(kind === 'multiball'){
+    // Spawn 1–2 extra low-value balls near the table centre
+    const extra = 1 + Math.floor(Math.random()*2);
+    const cx = T.ix + T.iw/2, cy = T.iy + T.ih/2;
+    for(let i=0;i<extra;i++){
+      const a = Math.random()*Math.PI*2, dist = Math.min(T.iw,T.ih)*0.18*Math.random();
+      G.balls.push({
+        x: cx + Math.cos(a)*dist, y: cy + Math.sin(a)*dist, vx:0, vy:0, r:BALL_R,
+        color: BCOLORS[Math.floor(Math.random()*BCOLORS.length)],
+        isBomb:false, isDanger:false,
+        timer:99999, maxTimer:99999, id:1000+G.balls.length,
+        potted:false, exploded:false, ph:Math.random()*Math.PI*2,
+        fuseAngle:0, fuseActive:false, fuseTimer:20, fuseMaxTimer:20,
+        neverHit:true, hitCount:0, special:null, _bonus:true
+      });
+    }
+    label = '✨ MULTI-BALL! +'+extra;
+  } else if(kind === 'slowmo'){
+    G._slowmo = 4.5;
+    label = '✨ SLOW-MO!';
+  } else if(kind === 'time'){
+    // Add breathing room to every ticking bomb still on the table
+    let bumped = 0;
+    for(const b of G.balls){
+      if(!b.potted && !b.exploded && b.isBomb){ b.timer += 6; b.maxTimer = Math.max(b.maxTimer, b.timer); bumped++; }
+    }
+    label = bumped ? '✨ +TIME!' : '✨ BONUS! +250';
+    if(!bumped){ G.score += 250; }
+  }
+  Audio.sfxSpecial();
+  burst(ball.x, ball.y, '#ffdd44', 22);
+  G.shake = Math.max(G.shake, 0.4);
+  showCombo(ball.x, ball.y-18, 1, 0, label);
+  unlockAch('powerup');
+  refreshStrip();
 }
 
 function showCombo(x,y,combo,pts,label) {
@@ -2732,6 +3034,16 @@ function draw3DBall(x, y, r, color, label, rollAngle, rollDir, urgent, urgentCol
   ctx.beginPath(); ctx.arc(x,y,r,0,Math.PI*2);
   ctx.fillStyle=rim; ctx.fill();
 
+  // Cool bounce-light on the lower-right edge — subtle rim highlight for extra roundness
+  ctx.save();
+  ctx.beginPath(); ctx.arc(x,y,r,0,Math.PI*2); ctx.clip();
+  const rl = ctx.createRadialGradient(x+r*0.5, y+r*0.55, r*0.1, x+r*0.4, y+r*0.45, r*0.9);
+  rl.addColorStop(0,'rgba(180,210,255,0)');
+  rl.addColorStop(0.75,'rgba(180,210,255,0)');
+  rl.addColorStop(1,'rgba(190,215,255,0.28)');
+  ctx.fillStyle=rl; ctx.beginPath(); ctx.arc(x,y,r,0,Math.PI*2); ctx.fill();
+  ctx.restore();
+
   // Specular highlight — bright white spot top-left
   const specX=x-r*0.32, specY=y-r*0.35;
   const spec = ctx.createRadialGradient(specX,specY,0,specX,specY,r*0.42);
@@ -2753,6 +3065,39 @@ function draw3DBall(x, y, r, color, label, rollAngle, rollDir, urgent, urgentCol
   }
 }
 
+const SPECIAL_STYLE = {
+  multiball: { color:'#33e0ff', icon:'✦' },
+  slowmo:    { color:'#66aaff', icon:'❄' },
+  time:      { color:'#44dd88', icon:'＋' },
+  mystery:   { color:'#c77dff', icon:'?' },
+};
+// Pulsing halo behind a special ball so it stands out on the table.
+function drawSpecialGlow(b, now) {
+  const s = SPECIAL_STYLE[b.special] || SPECIAL_STYLE.mystery;
+  const pulse = 0.5 + 0.5*Math.sin(now*4 + b.ph);
+  ctx.save();
+  ctx.globalAlpha = 0.35 + 0.35*pulse;
+  ctx.shadowBlur = 14 + 8*pulse; ctx.shadowColor = s.color;
+  ctx.strokeStyle = s.color; ctx.lineWidth = 2.5;
+  ctx.beginPath(); ctx.arc(b.x, b.y, b.r + 4 + 2*pulse, 0, Math.PI*2); ctx.stroke();
+  ctx.restore();
+}
+// Small floating badge marking the power-up type.
+function drawSpecialIcon(b, now) {
+  const s = SPECIAL_STYLE[b.special] || SPECIAL_STYLE.mystery;
+  const bob = Math.sin(now*3 + b.ph) * 1.5;
+  const bx = b.x, by = b.y - b.r - 8 + bob, br = Math.max(6, b.r*0.42);
+  ctx.save();
+  ctx.beginPath(); ctx.arc(bx, by, br, 0, Math.PI*2);
+  ctx.fillStyle = 'rgba(10,10,14,0.85)'; ctx.fill();
+  ctx.lineWidth = 1.5; ctx.strokeStyle = s.color; ctx.stroke();
+  ctx.fillStyle = s.color;
+  ctx.font = 'bold '+Math.round(br*1.2)+'px Share Tech Mono,monospace';
+  ctx.textAlign='center'; ctx.textBaseline='middle';
+  ctx.fillText(s.icon, bx, by+0.5);
+  ctx.restore();
+}
+
 function drawBalls() {
   const now=Date.now()/1000;
   for(const b of G.balls){
@@ -2765,8 +3110,10 @@ function drawBalls() {
     if(!b._rollDir) b._rollDir=0;
     if(speed > 0.05) b._rollDir = Math.atan2(b.vy, b.vx); // direction of travel
     b._roll += speed * 0.05;
+    if(b.special) drawSpecialGlow(b, now);
     draw3DBall(b.x, b.y, b.r, b.color, b.id+1, b._roll, b._rollDir, pulse, b.color, now, b.ph);
     if(b.hitCount > 0) drawBallCracks(b.x, b.y, b.r, b.hitCount, b.ph);
+    if(b.special) drawSpecialIcon(b, now);
   }
   // Cue ball — white 3-D
   if(G.cue){
@@ -2908,6 +3255,8 @@ function loop(ts){
   if(G.cue) updateFireLock();
   tickTimers(dt);tickParticles(dt);
   if(G.shake>0)G.shake-=dt;
+  if(G._comboFlash>0)G._comboFlash-=dt;
+  if(G._slowmo>0)G._slowmo-=dt;
   if(G.explosion) G.explosion.t = Math.min(G.explosion.t+dt, G.explosion.maxT);
 
   ctx.save();
@@ -2915,6 +3264,15 @@ function loop(ts){
   ctx.clearRect(0,0,canvas.width,canvas.height);
   ctx.fillStyle='#0d0d0d';ctx.fillRect(0,0,canvas.width,canvas.height);
   if(G.cue){drawTable();drawTimerBar();drawAimLine();drawBalls();drawParticles();}
+
+  // ── Combo celebration flash — warm glow that fades at the screen edges ────
+  if(G._comboFlash>0){
+    const W=canvas.width, H=canvas.height, a=Math.min(0.4, G._comboFlash*0.6);
+    const g=ctx.createRadialGradient(W/2,H/2,Math.min(W,H)*0.3,W/2,H/2,Math.max(W,H)*0.75);
+    g.addColorStop(0,'rgba(255,180,40,0)');
+    g.addColorStop(1,`rgba(255,140,20,${a})`);
+    ctx.fillStyle=g; ctx.fillRect(0,0,W,H);
+  }
 
   // ── UNLUCKY BALLS — Nuclear fireball overlay ─────────────────────────────
   if(G.explosion){
@@ -3262,12 +3620,39 @@ requestAnimationFrame(() => {
 // ══════════════════════════════════════════════════════════════════
 const Audio = (() => {
   let ctx = null, musicNodes = {}, musicPlaying = null, tensionActive = false;
+  let masterGain = null;
+  // Persisted volume/mute (0..1). Read from bb_settings if present.
+  let _vol = 0.8, _muted = false;
+  try {
+    const s = JSON.parse(localStorage.getItem('bb_settings')||'{}');
+    if(typeof s.sfxVol === 'number') _vol = s.sfxVol;
+    if(typeof s.muted === 'boolean') _muted = s.muted;
+  } catch(e){}
 
   function getCtx() {
-    if(!ctx) ctx = new (window.AudioContext||window.webkitAudioContext)();
+    if(!ctx) {
+      ctx = new (window.AudioContext||window.webkitAudioContext)();
+      masterGain = ctx.createGain();
+      masterGain.gain.value = _muted ? 0 : _vol;
+      masterGain.connect(ctx.destination);
+    }
     if(ctx.state === 'suspended') ctx.resume();
     return ctx;
   }
+
+  // All sound nodes route here instead of ctx.destination, so volume/mute is global.
+  function out() { getCtx(); return masterGain; }
+
+  function setVolume(v) {
+    _vol = Math.max(0, Math.min(1, v));
+    if(masterGain && !_muted) masterGain.gain.value = _vol;
+  }
+  function setMuted(b) {
+    _muted = !!b;
+    if(masterGain) masterGain.gain.value = _muted ? 0 : _vol;
+  }
+  function getVolume() { return _vol; }
+  function isMuted() { return _muted; }
 
   // ── Utility: simple envelope ────────────────────────────────────
   function env(gain, t, atk, dec, sus, rel) {
@@ -3288,7 +3673,7 @@ const Audio = (() => {
     g.gain.linearRampToValueAtTime(vol, t + atk);
     g.gain.linearRampToValueAtTime(vol * sus, t + atk + dec);
     g.gain.linearRampToValueAtTime(0, t + atk + dec + rel);
-    osc.connect(g); g.connect(c.destination);
+    osc.connect(g); g.connect(out());
     osc.start(t); osc.stop(t + atk + dec + rel + 0.05);
   }
 
@@ -3307,7 +3692,7 @@ const Audio = (() => {
     flt.Q.value = 2;
     g.gain.setValueAtTime(vol, t);
     g.gain.linearRampToValueAtTime(0, t + dur);
-    src.connect(flt); flt.connect(g); g.connect(c.destination);
+    src.connect(flt); flt.connect(g); g.connect(out());
     src.start(t); src.stop(t + dur + 0.01);
   }
 
@@ -3339,7 +3724,7 @@ const Audio = (() => {
       g.gain.setValueAtTime(0, t);
       g.gain.linearRampToValueAtTime(0.18, t + 0.08);
       g.gain.linearRampToValueAtTime(0, t + 0.7);
-      osc.connect(g); g.connect(c.destination);
+      osc.connect(g); g.connect(out());
       osc.start(t); osc.stop(t + 0.75);
     }
   }
@@ -3386,6 +3771,46 @@ const Audio = (() => {
 
   function sfxBombTick() {
     playTone(880, 'square', 0.08, 0.001, 0.01, 0, 0.02);
+  }
+
+  function sfxWallBounce() {
+    // Soft low thunk when the cue/ball kisses a rail
+    noise(0.12, 0.04, 300, 140);
+    playTone(90, 'sine', 0.12, 0.001, 0.03, 0, 0.05);
+  }
+
+  function sfxWhoosh(power) {
+    // Cue strike whoosh, brighter with more power
+    const p = Math.max(0.4, Math.min(1, (power||60)/100));
+    noise(0.18*p, 0.14, 400 + 500*p, 120);
+    playTone(140 + 120*p, 'sine', 0.14*p, 0.001, 0.05, 0, 0.08);
+  }
+
+  function sfxCombo(combo) {
+    // Rising sparkle chime that climbs with the combo count
+    const c = getCtx(), t = c.currentTime;
+    const n = Math.min(combo, 6);
+    for(let i=0;i<n;i++){
+      const f = 660 * Math.pow(1.122, i); // ~semitone steps
+      playTone(f, 'triangle', 0.12, 0.005, 0.04, 0.4, 0.12, t + i*0.05);
+    }
+  }
+
+  function sfxPowerup() {
+    // Bright ascending "pickup" arpeggio
+    [523, 784, 1046, 1568].forEach((f,i)=>{
+      playTone(f, 'square', 0.14, 0.005, 0.04, 0.5, 0.1, getCtx().currentTime + i*0.05);
+    });
+  }
+
+  function sfxSpecial() {
+    // Shimmery magical activation
+    const c = getCtx(), t = c.currentTime;
+    [880, 1174, 1568, 2093].forEach((f,i)=>{
+      playTone(f, 'sine', 0.1, 0.005, 0.06, 0.5, 0.2, t + i*0.04);
+      playTone(f*1.5, 'triangle', 0.04, 0.005, 0.05, 0.4, 0.15, t + i*0.04);
+    });
+    noise(0.08, 0.2, 4000, 8000, t);
   }
 
   // ── Music engine ────────────────────────────────────────────────
@@ -3474,6 +3899,8 @@ const Audio = (() => {
   return {
     sfxBallHit, sfxPotted, sfxMiss, sfxClap, sfxCheer,
     sfxLevelClear, sfxExplosion, sfxGameOver, sfxBombTick,
+    sfxWallBounce, sfxWhoosh, sfxCombo, sfxPowerup, sfxSpecial,
+    setVolume, setMuted, getVolume, isMuted,
     playMenu, playGame, setTension, stopMusic,
     init() { try { getCtx(); } catch(e){} }
   };
@@ -4515,13 +4942,20 @@ const MP = {
         this.oppScore = m.s;
         const b = G.balls[m.id];
         if(b && !b.potted){ b.potted=true; refreshStrip(); }
-        if(m.p){ const xy=this.toL(m.p[0],m.p[1]); showCombo(xy[0], xy[1], 1, m.pts); }
+        if(m.p){
+          const xy=this.toL(m.p[0],m.p[1]);
+          showCombo(xy[0], xy[1], 1, m.pts);
+          // Display-only juice — never mutates ball positions, so MP stays in sync
+          burst(xy[0], xy[1], (b&&b.color)||'#ffcc44', 12);
+          G.shake = Math.max(G.shake||0, 0.3);
+        }
         Audio.sfxPotted(1);
         this.updateBar();
         break;
       }
       case 'scr':
         Audio.sfxMiss();
+        G.shake = Math.max(G.shake||0, 0.25);
         break;
       case 'end': {
         if(m.b) m.b.forEach((p,i)=>{
