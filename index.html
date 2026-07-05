@@ -366,11 +366,15 @@ border:1px solid rgba(255,80,80,0.35);">
   </div>
 
   <!-- WAITING VIEW -->
-  <div id="mp-view-wait" style="display:none;flex-direction:column;align-items:center;gap:16px;">
-    <div style="font-size:.65rem;letter-spacing:2px;color:#888;">ROOM CODE — send this to your friend</div>
+  <div id="mp-view-wait" style="display:none;flex-direction:column;align-items:center;gap:14px;width:100%;max-width:360px;">
+    <div style="font-size:.7rem;letter-spacing:2px;color:#aaa;">INVITE A FRIEND</div>
+    <button onclick="MP.shareInvite()"
+      style="width:100%;font-family:'Black Ops One',Impact,'Arial Black',fantasy,cursive;font-size:1.05rem;letter-spacing:2px;padding:16px;background:#4da6ff;border:none;border-radius:10px;color:#000;cursor:pointer;box-shadow:0 4px 18px rgba(77,166,255,.35);">📨 SHARE INVITE</button>
+    <div style="font-size:.55rem;letter-spacing:1px;color:#666;">sends a link — they tap it and drop straight into your game</div>
+    <div style="color:#444;font-size:.65rem;letter-spacing:3px;margin:2px 0;">— OR SHARE THE CODE —</div>
     <div id="mp-code-show" onclick="MP.copyCode()" title="Tap to copy"
-      style="font-family:'Share Tech Mono',monospace;font-size:3rem;letter-spacing:14px;color:#ffcc00;background:#161616;border:2px dashed #4da6ff;border-radius:12px;padding:14px 20px 14px 34px;cursor:pointer;user-select:all;">----</div>
-    <div id="mp-copy-hint" style="font-size:.6rem;letter-spacing:1px;color:#555;">tap code to copy · they open the game → 1v1 ONLINE → JOIN</div>
+      style="font-family:'Share Tech Mono',monospace;font-size:2.4rem;letter-spacing:12px;color:#ffcc00;background:#161616;border:2px dashed #4da6ff;border-radius:12px;padding:12px 16px 12px 28px;cursor:pointer;user-select:all;">----</div>
+    <div id="mp-copy-hint" style="font-size:.6rem;letter-spacing:1px;color:#555;">or share this 4-letter code</div>
     <div style="display:flex;align-items:center;gap:10px;color:#4da6ff;font-size:.7rem;letter-spacing:2px;margin-top:4px;"><div class="mp-spinner"></div><span>WAITING FOR OPPONENT…</span></div>
   </div>
 
@@ -3613,6 +3617,8 @@ requestAnimationFrame(() => {
   _mapDiff = difficulty;
   setTimeout(()=>{ showLevelMap(0); }, 80);
   requestAnimationFrame(ts=>{lastTs=ts;requestAnimationFrame(loop);});
+  // If opened via an invite link (?room=CODE), jump straight into that match
+  setTimeout(()=>{ try{ MP.autoJoinFromUrl(); }catch(e){} }, 120);
 });
 
 // ══════════════════════════════════════════════════════════════════
@@ -4661,9 +4667,64 @@ const MP = {
   copyCode(){
     try{
       navigator.clipboard.writeText(this.code);
-      document.getElementById('mp-copy-hint').textContent = '✓ copied!';
-      setTimeout(()=>{ document.getElementById('mp-copy-hint').textContent = 'tap code to copy · they open the game → 1v1 ONLINE → JOIN'; }, 1800);
+      document.getElementById('mp-copy-hint').textContent = '✓ code copied!';
+      setTimeout(()=>{ document.getElementById('mp-copy-hint').textContent = 'or share this 4-letter code'; }, 1800);
     }catch(e){}
+  },
+  // Shareable invite link — opening it auto-joins this room
+  inviteUrl(){ return location.origin + location.pathname + '?room=' + this.code; },
+  _hint(msg, revert){
+    const el = document.getElementById('mp-copy-hint');
+    if(!el) return;
+    el.textContent = msg;
+    if(revert!==false) setTimeout(()=>{ el.textContent = 'or share this 4-letter code'; }, 2200);
+  },
+  async shareInvite(){
+    if(!this.code) return;
+    const url = this.inviteUrl();
+    const text = "Join my Unlucky Balls Billiards 1v1 match! 🎱";
+    if(navigator.share){
+      try{
+        await navigator.share({ title:'Unlucky Balls Billiards', text, url });
+        this._hint('✓ invite sent!');
+      }catch(e){ /* user cancelled the share sheet — do nothing */ }
+      return;
+    }
+    // Desktop / no Web Share — copy the link instead
+    try{
+      await navigator.clipboard.writeText(url);
+      this._hint('✓ invite link copied — paste it to your friend!');
+    }catch(e){
+      this._hint('Copy this link: '+url, false);
+    }
+  },
+  // If the page was opened via an invite link (?room=CODE), jump straight in
+  autoJoinFromUrl(){
+    let code;
+    try{ code = new URLSearchParams(location.search).get('room'); }catch(e){ return; }
+    if(!code) return;
+    code = code.trim().toUpperCase().slice(0,4);
+    if(code.length !== 4) return;
+    // Strip the param so a refresh doesn't re-trigger and the URL stays clean
+    try{ history.replaceState({}, '', location.pathname); }catch(e){}
+    this.openLobby();
+    const inEl = document.getElementById('mp-code-in');
+    if(inEl) inEl.value = code;
+    const savedName = (localStorage.getItem('bb_mp_name')||'').trim();
+    if(!savedName){
+      // No name yet — let them enter one, code is prefilled so it's one tap
+      this._setStatus("You're invited! Enter a name, then tap JOIN.");
+      return;
+    }
+    // Have a name — connect automatically (wait briefly for the PeerJS CDN)
+    this._setStatus("Joining your friend's game…");
+    let tries = 0;
+    const go = ()=>{
+      if(typeof Peer!=='undefined'){ this.joinRoom(code); return; }
+      if(tries++ > 20){ this._setStatus('Multiplayer library failed to load — check your connection and refresh.'); return; }
+      setTimeout(go, 300);
+    };
+    go();
   },
 
   // ── Connection setup ──────────────────────────────────────────────────────
@@ -4705,10 +4766,10 @@ const MP = {
       this._view('menu');
     });
   },
-  joinRoom(){
+  joinRoom(codeArg){
     if(typeof Peer==='undefined'){ this._setStatus('Multiplayer library failed to load — check your connection and refresh.'); return; }
     this._saveName();
-    const code = document.getElementById('mp-code-in').value.trim().toUpperCase();
+    const code = (codeArg!=null ? String(codeArg) : document.getElementById('mp-code-in').value).trim().toUpperCase();
     if(code.length !== 4){ this._setStatus('Enter the 4-letter room code.'); return; }
     this._cleanup(false);
     this._setStatus('Connecting…');
