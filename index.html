@@ -359,6 +359,7 @@ border:1px solid rgba(255,80,80,0.35);">
       style="width:100%;box-sizing:border-box;background:#161616;border:2px solid #333;border-radius:8px;color:#eee;font-family:'Share Tech Mono',monospace;font-size:1rem;letter-spacing:2px;padding:12px 14px;text-align:center;text-transform:uppercase;">
     <button onclick="MP.createRoom()"
       style="width:100%;font-family:'Black Ops One',Impact,'Arial Black',fantasy,cursive;font-size:1rem;letter-spacing:2px;padding:16px;background:#4da6ff;border:none;border-radius:8px;color:#000;cursor:pointer;">➕ CREATE ROOM</button>
+    <div style="font-size:.55rem;letter-spacing:1px;color:#666;margin-top:-6px;">keep the game open while you wait — the room closes if you leave</div>
     <div style="color:#555;font-size:.7rem;letter-spacing:3px;">— OR —</div>
     <div style="display:flex;gap:10px;width:100%;">
       <input id="mp-code-in" type="text" maxlength="4" placeholder="CODE" autocomplete="off"
@@ -378,6 +379,7 @@ border:1px solid rgba(255,80,80,0.35);">
     <div id="mp-code-show" onclick="MP.copyCode()" title="Tap to copy"
       style="font-family:'Share Tech Mono',monospace;font-size:2.4rem;letter-spacing:12px;color:#ffcc00;background:#161616;border:2px dashed #4da6ff;border-radius:12px;padding:12px 16px 12px 28px;cursor:pointer;user-select:all;">----</div>
     <div id="mp-copy-hint" style="font-size:.6rem;letter-spacing:1px;color:#555;">or share this 4-letter code</div>
+    <div id="mp-room-status" style="font-size:.62rem;letter-spacing:2px;color:#00e676;">● ROOM LIVE — keep this screen open</div>
     <div style="display:flex;align-items:center;gap:10px;color:#4da6ff;font-size:.7rem;letter-spacing:2px;margin-top:4px;"><div class="mp-spinner"></div><span>WAITING FOR OPPONENT…</span></div>
   </div>
 
@@ -4649,6 +4651,19 @@ const MP = {
     document.getElementById('mp-code-in').value = '';
     this._view('menu'); this._setStatus('');
     document.getElementById('mp-lobby').classList.remove('hidden');
+    // When the page comes back from being backgrounded/locked, revive a
+    // hosted room that the broker dropped while we were asleep.
+    if(!this._visBound){
+      this._visBound = true;
+      document.addEventListener('visibilitychange', ()=>{
+        if(document.visibilityState !== 'visible') return;
+        if(!this.code || !this.peer || this.conn) return; // not hosting-and-waiting
+        const p = this.peer;
+        if(p.destroyed){ this._roomStatus(false); this._openHostPeer(this.code, false); }
+        else if(p.disconnected){ this._roomStatus(false); try{ p.reconnect(); }catch(e){} }
+        this._keepAwake();
+      });
+    }
   },
   closeLobby(){
     document.getElementById('mp-lobby').classList.add('hidden');
@@ -4740,6 +4755,8 @@ const MP = {
   },
   _pid(code){ return 'unlucky-balls-bb-'+code; },
   _cleanup(clearMode){
+    if(this._joinTimer){ clearTimeout(this._joinTimer); this._joinTimer=null; }
+    this._releaseWake();
     try{ if(this.conn) this.conn.close(); }catch(e){}
     try{ if(this.peer) this.peer.destroy(); }catch(e){}
     this.conn=null; this.peer=null; this.active=false; this._inMatch=false;
@@ -4747,21 +4764,68 @@ const MP = {
     if(clearMode!==false){ G._mpMode=false; }
     document.getElementById('mp-bar').classList.add('hidden');
   },
+  // WebRTC config: STUN for discovery + a free TURN relay so phone↔phone
+  // connections work across cellular/Wi-Fi NATs (direct P2P often can't).
+  _peerOpts(){
+    return { config: { iceServers: [
+      { urls:'stun:stun.l.google.com:19302' },
+      { urls:'turn:openrelay.metered.ca:80',  username:'openrelayproject', credential:'openrelayproject' },
+      { urls:'turn:openrelay.metered.ca:443', username:'openrelayproject', credential:'openrelayproject' },
+      { urls:'turns:openrelay.metered.ca:443?transport=tcp', username:'openrelayproject', credential:'openrelayproject' },
+    ]}};
+  },
+  _roomStatus(live){
+    const el = document.getElementById('mp-room-status');
+    if(!el) return;
+    el.style.color = live ? '#00e676' : '#ffb020';
+    el.textContent = live ? '● ROOM LIVE — keep this screen open' : '● RECONNECTING…';
+  },
+  // Best-effort screen wake lock while hosting, so the phone doesn't sleep
+  // and silently kill the room while you wait for your friend.
+  async _keepAwake(){
+    try{
+      if(this._wakeLock || !navigator.wakeLock) return;
+      this._wakeLock = await navigator.wakeLock.request('screen');
+      this._wakeLock.addEventListener('release', ()=>{ this._wakeLock=null; });
+    }catch(e){}
+  },
+  _releaseWake(){
+    try{ if(this._wakeLock){ this._wakeLock.release(); this._wakeLock=null; } }catch(e){}
+  },
   createRoom(){
     if(typeof Peer==='undefined'){ this._setStatus('Multiplayer library failed to load — check your connection and refresh.'); return; }
     this._saveName();
     this._cleanup(false);
     this.code = this._genCode();
     this._setStatus('Creating room…');
-    const p = new Peer(this._pid(this.code));
+    this._openHostPeer(this.code, true);
+  },
+  // Opens (or re-opens) the host peer under the given room code.
+  // allowReroll: only a brand-new room rerolls on code collision; a revival
+  // retries the SAME code so invites already sent keep working.
+  _openHostPeer(code, allowReroll){
+    const p = new Peer(this._pid(code), this._peerOpts());
     this.peer = p;
     p.on('open', ()=>{
-      document.getElementById('mp-code-show').textContent = this.code;
-      this._view('wait');
-      this._setStatus('Waiting for a friend to join…');
+      if(p !== this.peer) return;
+      document.getElementById('mp-code-show').textContent = code;
+      if(!this._inMatch){
+        this._view('wait');
+        this._setStatus('Waiting for a friend to join…');
+      }
+      this._roomStatus(true);
+      this._keepAwake();
       // quickInvite: pop the share sheet right away (falls back to copying the
       // link; the big SHARE INVITE button stays visible either way)
       if(this._autoShare){ this._autoShare = false; this.shareInvite(); }
+    });
+    // Broker link dropped (phone slept / app backgrounded) — revive the room
+    // under the same code so an already-sent invite still works.
+    p.on('disconnected', ()=>{
+      if(p !== this.peer || p.destroyed) return;
+      this._roomStatus(false);
+      if(!this._inMatch) this._setStatus('Connection dropped — reviving the room…');
+      try{ p.reconnect(); }catch(e){}
     });
     p.on('connection', c=>{
       if(this.conn){ try{c.close();}catch(e){} return; } // room full
@@ -4769,7 +4833,13 @@ const MP = {
       this._bindConn(c);
     });
     p.on('error', e=>{
-      if(e.type==='unavailable-id'){ this.createRoom(); return; } // code collision — reroll
+      if(p !== this.peer) return;
+      if(e.type==='unavailable-id'){
+        if(allowReroll){ this.createRoom(); return; } // code collision — reroll
+        // Reviving: our old registration may still be expiring — retry same code
+        setTimeout(()=>{ if(p===this.peer && !this._inMatch) this._openHostPeer(code, false); }, 2000);
+        return;
+      }
       this._setStatus('Connection error: '+e.type+' — try again.');
       this._view('menu');
     });
@@ -4780,17 +4850,34 @@ const MP = {
     const code = (codeArg!=null ? String(codeArg) : document.getElementById('mp-code-in').value).trim().toUpperCase();
     if(code.length !== 4){ this._setStatus('Enter the 4-letter room code.'); return; }
     this._cleanup(false);
-    this._setStatus('Connecting…');
-    const p = new Peer();
+    this._joinRetries = 0;
+    this._joinAttempt(code);
+  },
+  _joinAttempt(code){
+    this._setStatus(this._joinRetries ? ('Room not answering — retrying ('+this._joinRetries+'/6)…') : 'Connecting…');
+    const p = new Peer(this._peerOpts());
     this.peer = p;
     p.on('open', ()=>{
+      if(p !== this.peer) return;
       const c = p.connect(this._pid(code), {reliable:true});
       this.isHost = false;
       this._bindConn(c);
-      setTimeout(()=>{ if(this.conn===c && !c.open && !this._inMatch) this._setStatus('No room found with that code — double-check it.'); }, 9000);
+      setTimeout(()=>{ if(this.conn===c && !c.open && !this._inMatch) this._setStatus('Found the room but the connection is stuck — both players try refreshing.'); }, 15000);
     });
     p.on('error', e=>{
-      if(e.type==='peer-unavailable'){ this._setStatus('No room found with that code — double-check it.'); return; }
+      if(p !== this.peer) return;
+      if(e.type==='peer-unavailable'){
+        // The host may be mid-reconnect (their phone just woke up) — retry
+        if(this._joinRetries < 6){
+          this._joinRetries++;
+          this._setStatus('Room not answering — retrying ('+this._joinRetries+'/6)…');
+          try{ p.destroy(); }catch(err){}
+          this._joinTimer = setTimeout(()=>{ if(this.peer===p) this._joinAttempt(code); }, 3000);
+          return;
+        }
+        this._setStatus("Couldn't find that room. Rooms close if the host leaves the game — ask your friend to reopen it and send a fresh invite.");
+        return;
+      }
       this._setStatus('Connection error: '+e.type+' — try again.');
     });
   },
